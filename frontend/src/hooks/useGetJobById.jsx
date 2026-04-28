@@ -1,0 +1,28 @@
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useDispatch } from "react-redux";
+import { jobService } from "@/services/job.service";
+import { setSingleJob } from "@/redux/jobSlice";
+
+const useGetJobById = (jobId) => {
+    const dispatch = useDispatch();
+    const query = useQuery({
+        queryKey: ["job", jobId],
+        enabled: Boolean(jobId),
+        queryFn: async () => jobService.getJobById(jobId),
+        select: (response) => response?.data ?? response,
+    });
+
+    useEffect(() => {
+        const data = query.data;
+        if (!data) {
+            return;
+        }
+
+        dispatch(setSingleJob(data?.job || data?.data?.job || null));
+    }, [dispatch, query.data]);
+
+    return query;
+};
+
+export default useGetJobById;
