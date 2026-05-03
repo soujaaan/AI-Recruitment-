@@ -1,19 +1,34 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Navbar from './shared/Navbar'
 import { Avatar, AvatarImage } from './ui/avatar'
 import { Button } from './ui/button'
-import { Badge } from './ui/badge'
 import { useSelector } from 'react-redux'
 import UpdateProfileDialog from './UpdateProfileDialog'
 import AppliedJobTable from './AppliedJobTable'
 import { motion } from 'framer-motion'
 import SectionHeader from './common/SectionHeader'
 import GlassCard from './common/GlassCard'
-import { Mail, Phone, FileText, Edit3 } from 'lucide-react'
+import { Mail, Phone, FileText, Edit3, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 const Profile = () => {
     const [open, setOpen] = useState(false);
     const { user } = useSelector(store => store.auth);
+
+    const completion = useMemo(() => {
+        const fields = [
+            user?.fullname,
+            user?.email,
+            user?.phoneNumber,
+            user?.profile?.bio,
+            user?.profile?.skills?.length > 0,
+            user?.profile?.resume,
+            user?.profile?.profilePhoto
+        ];
+        const filled = fields.filter(Boolean).length;
+        return Math.round((filled / fields.length) * 100);
+    }, [user]);
+
+    const isProfileComplete = completion >= 80;
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -28,7 +43,7 @@ const Profile = () => {
 
                     <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Profile Card */}
-                        <div className="lg:col-span-4">
+                        <div className="lg:col-span-4 space-y-6">
                             <motion.div
                                 initial={{ opacity: 0, y: 40 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -79,6 +94,43 @@ const Profile = () => {
                                         <Edit3 className="w-4 h-4 mr-2" />
                                         Edit Profile
                                     </Button>
+                                </GlassCard>
+                            </motion.div>
+
+                            {/* Completion Meter */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 40 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: 0.1 }}
+                            >
+                                <GlassCard>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-foreground">Profile Completion</span>
+                                        <span className={`text-sm font-bold ${isProfileComplete ? 'text-[#00ff88]' : 'text-amber-400'}`}>
+                                            {completion}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 rounded-full bg-surface-elevated overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${completion}%` }}
+                                            transition={{ duration: 0.8, ease: "easeOut" }}
+                                            className={`h-full rounded-full ${isProfileComplete ? 'bg-[#00ff88]' : 'bg-amber-400'}`}
+                                        />
+                                    </div>
+                                    {!isProfileComplete && (
+                                        <div className="flex items-start gap-2 mt-3 text-xs text-amber-400">
+                                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                                            <p>Complete your profile to apply for jobs. Add resume, bio, and skills.</p>
+                                        </div>
+                                    )}
+                                    {isProfileComplete && (
+                                        <div className="flex items-center gap-2 mt-3 text-xs text-[#00ff88]">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            <p>Your profile is complete. You're ready to apply!</p>
+                                        </div>
+                                    )}
                                 </GlassCard>
                             </motion.div>
                         </div>

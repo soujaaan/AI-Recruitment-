@@ -4,33 +4,25 @@ const companySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true,
-        trim: true,
-        index: true
+        unique: true
     },
     description: {
-        type: String,
-        trim: true,
+        type: String, 
     },
     website: {
-        type: String,
-        trim: true
+        type: String 
     },
     location: {
-        type: String,
-        trim: true
+        type: String 
     },
     logo: {
-        type: String
+        type: String // URL to cloudinary
     },
-    createdBy: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
         required: true
     }
 }, { timestamps: true });
 
-companySchema.index({ createdBy: 1, createdAt: -1 });
-
 export const Company = mongoose.model("Company", companySchema);
-

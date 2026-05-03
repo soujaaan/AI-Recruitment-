@@ -11,12 +11,12 @@ const Browse = lazy(() => import("./components/Browse"));
 const Profile = lazy(() => import("./components/Profile"));
 const JobDescription = lazy(() => import("./components/JobDescription"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
-const Companies = lazy(() => import("./components/admin/Companies"));
-const CompanyCreate = lazy(() => import("./pages/admin/CreateCompany"));
-const CompanySetup = lazy(() => import("./components/admin/CompanySetup"));
+const Applications = lazy(() => import("./pages/candidate/ApplicationsPage"));
 const AdminJobs = lazy(() => import("./components/admin/AdminJobs"));
 const PostJob = lazy(() => import("./components/admin/PostJob"));
 const Applicants = lazy(() => import("./components/admin/Applicants"));
+const Companies = lazy(() => import("./components/admin/Companies"));
+const CompanyCreate = lazy(() => import("./components/admin/CompanyCreate"));
 
 const withSuspense = (element) => (
   <Suspense fallback={<LoadingScreen label="Loading page..." />}>{element}</Suspense>
@@ -40,6 +40,10 @@ const appRouter = createBrowserRouter([
     element: withSuspense(<Jobs />)
   },
   {
+    path: "/jobs/:id",
+    element: withSuspense(<JobDescription />)
+  },
+  {
     path: "/description/:id",
     element: withSuspense(<JobDescription />)
   },
@@ -53,10 +57,15 @@ const appRouter = createBrowserRouter([
       {
         path: "/profile",
         element: withSuspense(<Profile />)
-      },
+      }
+    ]
+  },
+  {
+    element: <ProtectedRoute allowedRoles={["candidate"]} />,
+    children: [
       {
-        path: "/dashboard",
-        element: withSuspense(<Dashboard />)
+        path: "/applications",
+        element: withSuspense(<Applications />)
       }
     ]
   },
@@ -64,20 +73,17 @@ const appRouter = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={["recruiter", "admin"]} />,
     children: [
       {
+        path: "/dashboard",
+        element: withSuspense(<Dashboard />)
+      }
+    ]
+  },
+{
+        element: <ProtectedRoute allowedRoles={["recruiter", "admin"]} />,
+        children: [
+      {
         path: "/admin/dashboard",
         element: withSuspense(<Dashboard />)
-      },
-      {
-        path: "/admin/companies",
-        element: withSuspense(<Companies />)
-      },
-      {
-        path: "/admin/companies/create",
-        element: withSuspense(<CompanyCreate />)
-      },
-      {
-        path: "/admin/companies/:id",
-        element: withSuspense(<CompanySetup />)
       },
       {
         path: "/admin/jobs",
@@ -86,6 +92,14 @@ const appRouter = createBrowserRouter([
       {
         path: "/admin/jobs/:id/applicants",
         element: withSuspense(<Applicants />)
+      },
+      {
+        path: "/admin/companies",
+        element: withSuspense(<Companies />)
+      },
+      {
+        path: "/admin/companies/create",
+        element: withSuspense(<CompanyCreate />)
       }
     ]
   },

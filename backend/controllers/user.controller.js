@@ -16,7 +16,7 @@ const buildSafeUser = (user) => ({
     fullname: user.fullname,
     email: user.email,
     phoneNumber: user.phoneNumber,
-    role: user.role,
+    role: normalizeRole(user.role),
     profile: user.profile,
     isActive: user.isActive,
     lastLoginAt: user.lastLoginAt,

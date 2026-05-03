@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Navbar from './shared/Navbar'
 import FilterCard from './FilterCard'
 import Job from './Job'
@@ -7,10 +7,21 @@ import { motion } from 'framer-motion'
 import SectionHeader from './common/SectionHeader'
 import EmptyState from './common/EmptyState'
 import Pagination from './common/Pagination'
+import useGetAllJobs from '@/hooks/useGetAllJobs'
+import { Input } from './ui/input'
+import { Search, SlidersHorizontal } from 'lucide-react'
 
 const Jobs = () => {
     const { allJobs, jobPagination } = useSelector(store => store.job);
-    const [filterOpen, setFilterOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+
+    useGetAllJobs({ page: 1, limit: 12, search: debouncedQuery || undefined });
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -22,6 +33,19 @@ const Jobs = () => {
                         title="All <span class='gradient-text'>Openings</span>"
                         subtitle="Browse every opportunity on the platform. Filter by role, location, and salary to find your match."
                     />
+
+                    {/* Search Bar */}
+                    <div className="mt-8 max-w-2xl">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search by job title, company, or keywords..."
+                                className="pl-11 py-5 bg-surface border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:border-accent focus:ring-accent/20"
+                            />
+                        </div>
+                    </div>
 
                     <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Sidebar Filter */}

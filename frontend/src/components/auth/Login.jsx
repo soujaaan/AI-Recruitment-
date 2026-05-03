@@ -25,7 +25,12 @@ const Login = () => {
             const result = await loginMutation.mutateAsync(input);
             if (result.success) {
                 toast.success(result.message);
-                navigate("/");
+                const user = result?.user || result?.data?.user;
+                if (user?.role === 'candidate') {
+                    navigate("/jobs");
+                } else {
+                    navigate("/admin/dashboard");
+                }
             }
         } catch (error) {
             toast.error(error.message);

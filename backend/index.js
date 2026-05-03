@@ -9,9 +9,9 @@ import { corsOptions } from "./config/cors.js";
 import connectDB from "./utils/db.js";
 import { logger } from "./utils/logger.js";
 import userRoute from "./routes/user.route.js";
-import companyRoute from "./routes/company.route.js";
 import jobRoute from "./routes/job.route.js";
 import applicationRoute from "./routes/application.route.js";
+import companyRoute from "./routes/company.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
 
@@ -45,9 +45,9 @@ app.use(requestLogger);
 
 // API Routes
 app.use("/api/v1/user", userRoute);
-app.use("/api/v1/company", companyRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
+app.use("/api/v1/company", companyRoute);
 
 // Health check
 app.get("/health", (req, res) => {

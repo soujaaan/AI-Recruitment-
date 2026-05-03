@@ -5,6 +5,7 @@ import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRegisterMutation } from '@/hooks/useAuthMutations'
+import { authService } from '@/services/auth.service'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react'
@@ -46,7 +47,22 @@ const Signup = () => {
             const result = await registerMutation.mutateAsync(formData);
             if (result.success) {
                 toast.success(result.message);
-                navigate("/login");
+                // After signup, auto-login and redirect based on role
+                const loginResult = await authService.login({ email: input.email, password: input.password });
+                const user = loginResult?.user || loginResult?.data?.user;
+                const token = loginResult?.token || loginResult?.data?.token || "";
+                if (user && token) {
+                    localStorage.setItem("accessToken", token);
+                    // Dispatch auth state so Redux knows user is logged in
+                    const { setAuthState } = await import('@/redux/authSlice');
+                    const { default: store } = await import('@/redux/store');
+                    store.dispatch(setAuthState({ user, token }));
+                }
+                if (user?.role === 'candidate') {
+                    navigate("/jobs");
+                } else {
+                    navigate("/admin/dashboard");
+                }
             }
         } catch (error) {
             toast.error(error.message);

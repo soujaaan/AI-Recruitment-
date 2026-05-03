@@ -1,5 +1,4 @@
 import { Job } from "../models/job.model.js";
-import { Company } from "../models/company.model.js";
 import { Application } from "../models/application.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -10,24 +9,6 @@ import { logger } from "../utils/logger.js";
 const canManageJob = (job, user) =>
     user?.role === "admin" || String(job.created_by) === String(user?.id);
 
-const ensureCompanyOwnership = async (companyId, user) => {
-    if (!companyId) {
-        throw new ApiError(400, "Company ID is required");
-    }
-
-    const company = await Company.findById(companyId);
-
-    if (!company) {
-        throw new ApiError(404, "Company not found");
-    }
-
-    if (user?.role !== "admin" && String(company.createdBy) !== String(user?.id)) {
-        throw new ApiError(403, "You do not own this company");
-    }
-
-    return company;
-};
-
 export const postJob = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.id;
     const userRole = req.user?.role;
@@ -35,30 +16,34 @@ export const postJob = asyncHandler(async (req, res) => {
         title,
         description,
         requirements,
-        salary,
+        salaryRange,
         location,
         jobType,
-        experience,
-        position,
-        companyId,
+        experienceLevel,
+        openings,
+        company,
     } = req.body;
 
     if (userRole !== "recruiter" && userRole !== "admin") {
         throw new ApiError(403, "Only recruiters or admins can post jobs");
     }
 
-    await ensureCompanyOwnership(companyId, req.user);
-
+    // Use company object from request
     const job = await Job.create({
         title,
         description,
         requirements,
-        salary,
+        salary: salaryRange,
         location,
         jobType,
-        experienceLevel: experience,
-        position,
-        company: companyId,
+        experienceLevel,
+        position: openings,
+        company: {
+            name: company?.name || "Unknown Company",
+            website: company?.website || "",
+            location: company?.location || "",
+            logo: ""
+        },
         created_by: userId,
         isActive: true,
     });
@@ -84,12 +69,11 @@ export const getAllJobs = asyncHandler(async (req, res) => {
 
     const query = search ? { $text: { $search: search } } : {};
 
-    const totalJobs = await Job.countDocuments(query);
+const totalJobs = await Job.countDocuments(query);
     const jobsQuery = Job.find(
         query,
         search ? { score: { $meta: "textScore" } } : {}
     )
-        .populate({ path: "company" })
         .skip(skip)
         .limit(limit);
 
@@ -114,9 +98,7 @@ export const getAllJobs = asyncHandler(async (req, res) => {
 });
 
 export const getJobById = asyncHandler(async (req, res) => {
-    const job = await Job.findById(req.params.id).populate({
-        path: "company",
-    });
+    const job = await Job.findById(req.params.id);
 
     if (!job) {
         throw new ApiError(404, "Job not found");
@@ -131,9 +113,8 @@ export const getAdminJobs = asyncHandler(async (req, res) => {
     const query =
         req.user?.role === "admin" ? {} : { created_by: userId };
 
-    const totalJobs = await Job.countDocuments(query);
+const totalJobs = await Job.countDocuments(query);
     const jobs = await Job.find(query)
-        .populate({ path: "company" })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -161,22 +142,29 @@ export const updateJob = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You do not own this job");
     }
 
-    const {
+const {
         title,
         description,
         requirements,
-        salary,
+        salaryRange,
         location,
         jobType,
-        experience,
-        position,
-        companyId,
+        experienceLevel,
+        openings,
+        company,
         isActive,
     } = req.body;
 
-    if (companyId) {
-        await ensureCompanyOwnership(companyId, req.user);
-        job.company = companyId;
+    if (company !== undefined) {
+        if (company.name !== undefined) {
+            job.company.name = company.name;
+        }
+        if (company.website !== undefined) {
+            job.company.website = company.website;
+        }
+        if (company.location !== undefined) {
+            job.company.location = company.location;
+        }
     }
 
     if (title !== undefined) {
@@ -194,10 +182,8 @@ export const updateJob = asyncHandler(async (req, res) => {
             ? requirements.map((r) => String(r).trim()).filter(Boolean)
             : String(requirements).split(",").map((r) => r.trim()).filter(Boolean);
     }
-    if (salary !== undefined) {
-        const num = Number(salary);
-        if (!Number.isFinite(num) || num <= 0) throw new ApiError(400, "Invalid salary");
-        job.salary = num;
+    if (salaryRange !== undefined) {
+        job.salary = salaryRange;
     }
     if (location !== undefined) {
         const trimmed = String(location).trim();
@@ -205,18 +191,14 @@ export const updateJob = asyncHandler(async (req, res) => {
         job.location = trimmed;
     }
     if (jobType !== undefined) {
-        const trimmed = String(jobType).trim();
-        if (trimmed.length === 0) throw new ApiError(400, "Job type cannot be empty");
-        job.jobType = trimmed;
+        job.jobType = jobType;
     }
-    if (experience !== undefined) {
-        const num = Number(experience);
-        if (!Number.isFinite(num) || num < 0) throw new ApiError(400, "Invalid experience");
-        job.experienceLevel = num;
+    if (experienceLevel !== undefined) {
+        job.experienceLevel = experienceLevel;
     }
-    if (position !== undefined) {
-        const num = Number(position);
-        if (!Number.isFinite(num) || num <= 0) throw new ApiError(400, "Invalid position count");
+    if (openings !== undefined) {
+        const num = Number(openings);
+        if (!Number.isFinite(num) || num <= 0) throw new ApiError(400, "Invalid openings count");
         job.position = num;
     }
     if (isActive !== undefined) {

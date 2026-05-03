@@ -6,15 +6,23 @@ import EmptyState from './common/EmptyState'
 import { Briefcase, MapPin, Clock } from 'lucide-react'
 
 const AppliedJobTable = () => {
-    const { allAppliedJobs } = useSelector(store => store.application);
+    const { allAppliedJobs } = useSelector(store => store.job);
     useGetAppliedJobs();
+
+    const statusVariant = (status) => {
+        switch (status) {
+            case 'shortlisted': return 'bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30';
+            case 'rejected': return 'bg-red-500/10 text-red-400 border-red-500/30';
+            default: return 'bg-surface-elevated text-muted-foreground border-border';
+        }
+    };
 
     return (
         <div className="space-y-3">
             {allAppliedJobs.length <= 0 ? (
                 <EmptyState title="No applications yet" description="Start applying to jobs to see them here." />
             ) : (
-                allAppliedJobs.map((appliedJob, index) => (
+                allAppliedJobs.map((appliedJob) => (
                     <div
                         key={appliedJob._id}
                         className="group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/20 hover:bg-surface transition-all"
@@ -40,12 +48,7 @@ const AppliedJobTable = () => {
                                 </div>
                             </div>
                             <Badge
-                                variant={
-                                    appliedJob?.status === 'accepted' ? 'green' :
-                                    appliedJob?.status === 'rejected' ? 'destructive' :
-                                    appliedJob?.status === 'interview' ? 'secondary' :
-                                    'outline'
-                                }
+                                className={`${statusVariant(appliedJob?.status)} border`}
                             >
                                 {appliedJob.status}
                             </Badge>

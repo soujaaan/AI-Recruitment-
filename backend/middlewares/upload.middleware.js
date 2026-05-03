@@ -10,6 +10,8 @@ export const upload = multer({
     },
 });
 
-export const singleUpload = upload.single("profilePhoto");
+export const singleUpload = upload.single("file");
 
 export const profilePhotoUpload = upload.single("profilePhoto");
+
+export const companyLogoUpload = upload.single("file");

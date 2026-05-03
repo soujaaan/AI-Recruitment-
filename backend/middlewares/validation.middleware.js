@@ -4,6 +4,9 @@ import { normalizeRole } from "../utils/role.utils.js";
 
 const allowedApplicationStatuses = ["pending", "accepted", "rejected", "applied", "shortlisted"];
 const allowedSignupRoles = ["candidate", "recruiter", "student", "Candidate"];
+const allowedJobTypes = ["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"];
+const allowedExperienceLevels = ["0-1", "1-3", "3-5", "5+"];
+const allowedSalaryRanges = ["3-5 LPA", "5-10 LPA", "10-20 LPA", "20+ LPA"];
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""));
 const isStrongPassword = (value) => typeof value === "string" && value.length >= 8;
@@ -63,7 +66,7 @@ export const validateLogin = (req, res, next) => {
 };
 
 export const validateJobCreation = (req, res, next) => {
-    const { title, description, requirements, salary, location, jobType, experience, position, companyId } = req.body;
+    const { title, description, requirements, salaryRange, location, jobType, experienceLevel, openings, company } = req.body;
 
     if (!isNonEmptyString(title)) {
         return next(new ApiError(400, "Job title is required"));
@@ -74,29 +77,27 @@ export const validateJobCreation = (req, res, next) => {
     if (!requirements || (!Array.isArray(requirements) && !isNonEmptyString(requirements))) {
         return next(new ApiError(400, "Job requirements are required"));
     }
-    if (!Number.isFinite(Number(salary)) || Number(salary) <= 0) {
-        return next(new ApiError(400, "Valid salary is required"));
+    if (!allowedSalaryRanges.includes(salaryRange)) {
+        return next(new ApiError(400, "Valid salary range is required"));
     }
     if (!isNonEmptyString(location)) {
         return next(new ApiError(400, "Job location is required"));
     }
-    if (!isNonEmptyString(jobType)) {
-        return next(new ApiError(400, "Job type is required"));
+    if (!allowedJobTypes.includes(jobType)) {
+        return next(new ApiError(400, "Valid job type is required"));
     }
-    if (!Number.isFinite(Number(experience)) || Number(experience) < 0) {
-        return next(new ApiError(400, "Valid experience is required"));
+    if (!allowedExperienceLevels.includes(experienceLevel)) {
+        return next(new ApiError(400, "Valid experience level is required"));
     }
-    if (!Number.isFinite(Number(position)) || Number(position) <= 0) {
-        return next(new ApiError(400, "Valid position count is required"));
+    if (!Number.isFinite(Number(openings)) || Number(openings) <= 0) {
+        return next(new ApiError(400, "Valid openings count is required"));
     }
-    if (!ensureObjectId(companyId)) {
-        return next(new ApiError(400, "companyId is invalid"));
+    if (!company || !isNonEmptyString(company.name)) {
+        return next(new ApiError(400, "Company name is required"));
     }
 
     req.body.requirements = normalizeArrayFromBody(requirements);
-    req.body.salary = Number(salary);
-    req.body.experience = Number(experience);
-    req.body.position = Number(position);
+    req.body.openings = Number(openings);
     next();
 };
 

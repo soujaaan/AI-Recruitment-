@@ -5,7 +5,7 @@ const unwrap = (response) => response.data;
 export const applicationService = {
     async apply(jobId) {
         try {
-            const response = await apiClient.post(`/application/apply/${jobId}`);
+            const response = await apiClient.post(`/api/v1/application/apply/${jobId}`);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -13,7 +13,7 @@ export const applicationService = {
     },
     async getAppliedJobs(params = {}) {
         try {
-            const response = await apiClient.get("/application/get", { params });
+            const response = await apiClient.get("/api/v1/application/get", { params });
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -21,7 +21,7 @@ export const applicationService = {
     },
     async getApplicants(jobId, params = {}) {
         try {
-            const response = await apiClient.get(`/application/${jobId}/applicants`, { params });
+            const response = await apiClient.get(`/api/v1/application/${jobId}/applicants`, { params });
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -29,7 +29,7 @@ export const applicationService = {
     },
     async updateStatus(applicationId, status) {
         try {
-            const response = await apiClient.post(`/application/status/${applicationId}/update`, { status });
+            const response = await apiClient.post(`/api/v1/application/status/${applicationId}/update`, { status });
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));

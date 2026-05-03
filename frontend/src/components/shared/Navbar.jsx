@@ -5,7 +5,7 @@ import { Avatar, AvatarImage } from '../ui/avatar'
 import { LogOut, MoonStar, Search, SunMedium, User2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { setUser } from '@/redux/authSlice'
+import { clearAuth } from '@/redux/authSlice'
 import { toast } from 'sonner'
 import { useLogoutMutation } from '@/hooks/useAuthMutations'
 import { useTheme } from 'next-themes'
@@ -29,11 +29,14 @@ const Navbar = () => {
     const logoutHandler = async () => {
         try {
             const res = await logoutMutation.mutateAsync();
-            dispatch(setUser(null));
+            dispatch(clearAuth());
             navigate("/");
             toast.success(res.message || "Logged out successfully");
         } catch (error) {
-            toast.error(error.message);
+            // Force logout locally even if the backend returns 401
+            dispatch(clearAuth());
+            navigate("/");
+            toast.error("Session cleared. Please log in again.");
         }
     }
 
@@ -60,12 +63,27 @@ const Navbar = () => {
                     <ul className='hidden md:flex font-medium items-center gap-5 text-foreground'>
                         {user ? (
                             <>
-                                <li className="relative group">
-                                    <Link to="/dashboard" className="transition-colors hover:text-accent">Dashboard</Link>
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                </li>
-                                {user.role === 'recruiter' || user.role === 'admin' ? (
+                                {user.role === 'candidate' ? (
                                     <>
+                                        <li className="relative group">
+                                            <Link to="/jobs" className="transition-colors hover:text-accent">Jobs</Link>
+                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+                                        </li>
+                                        <li className="relative group">
+                                            <Link to="/applications" className="transition-colors hover:text-accent">Applications</Link>
+                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+                                        </li>
+                                        <li className="relative group">
+                                            <Link to="/profile" className="transition-colors hover:text-accent">Profile</Link>
+                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+                                        </li>
+                                    </>
+                                ) : (
+                                    <>
+                                        <li className="relative group">
+                                            <Link to="/dashboard" className="transition-colors hover:text-accent">Dashboard</Link>
+                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+                                        </li>
                                         <li className="relative group">
                                             <Link to="/admin/companies" className="transition-colors hover:text-accent">Companies</Link>
                                             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
@@ -75,11 +93,6 @@ const Navbar = () => {
                                             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
                                         </li>
                                     </>
-                                ) : (
-                                    <li className="relative group">
-                                        <Link to="/jobs" className="transition-colors hover:text-accent">Jobs</Link>
-                                        <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                    </li>
                                 )}
                             </>
                         ) : (

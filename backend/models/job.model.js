@@ -16,11 +16,11 @@ const jobSchema = new mongoose.Schema({
         trim: true
     }],
     salary: {
-        type: Number,
+        type: String,
         required: true
     },
     experienceLevel: {
-        type: Number,
+        type: String,
         required: true,
     },
     location: {
@@ -37,10 +37,26 @@ const jobSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    company: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Company',
-        required: true
+company: {
+        name: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        website: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        location: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        logo: {
+            type: String,
+            default: ""
+        }
     },
     created_by: {
         type: mongoose.Schema.Types.ObjectId,

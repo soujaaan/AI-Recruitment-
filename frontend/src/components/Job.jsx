@@ -12,7 +12,7 @@ const Job = ({ job }) => {
         <GlassCard
             animate={false}
             className="cursor-pointer flex flex-col h-full group"
-            onClick={() => navigate(`/description/${job?._id}`)}
+            onClick={() => navigate(`/jobs/${job?._id}`)}
         >
             <div className="flex items-start justify-between mb-4">
                 <div>

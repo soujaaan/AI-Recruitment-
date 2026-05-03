@@ -13,11 +13,11 @@ import { validateJobCreation, validateObjectIdParam } from "../middlewares/valid
 
 const router = express.Router();
 
-// Public / authenticated job browsing
-router.route("/jobs").get(isAuthenticated, getAllJobs);
-router.route("/get").get(isAuthenticated, getAllJobs);
-router.route("/get/:id").get(isAuthenticated, validateObjectIdParam("id"), getJobById);
-router.route("/jobs/:id").get(isAuthenticated, validateObjectIdParam("id"), getJobById);
+// Public job browsing — no auth required
+router.route("/jobs").get(getAllJobs);
+router.route("/get").get(getAllJobs);
+router.route("/get/:id").get(validateObjectIdParam("id"), getJobById);
+router.route("/jobs/:id").get(validateObjectIdParam("id"), getJobById);
 
 // Recruiter / Admin job management
 router.route("/post").post(isAuthenticated, authorizeRoles("recruiter", "admin"), validateJobCreation, postJob);

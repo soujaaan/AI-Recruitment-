@@ -3,20 +3,20 @@ import { apiClient, getApiErrorMessage } from "@/lib/api";
 const unwrap = (response) => response.data;
 
 export const jobService = {
-async listJobs(params = {}) {
+    async listJobs(params = {}) {
         try {
-            const response = await apiClient.get("/api/jobs", { params });
+            const response = await apiClient.get("/api/v1/job/get", { params });
             return unwrap(response);
         } catch (error) {
             if (error.response?.status === 404) {
-                return { jobs: [], pagination: null }; // Graceful 404
+                return { jobs: [], pagination: null };
             }
             throw new Error(getApiErrorMessage(error));
         }
     },
-async getJobById(jobId) {
+    async getJobById(jobId) {
         try {
-            const response = await apiClient.get(`/api/jobs/${jobId}`);
+            const response = await apiClient.get(`/api/v1/job/get/${jobId}`);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -24,7 +24,7 @@ async getJobById(jobId) {
     },
     async getAdminJobs(params = {}) {
         try {
-            const response = await apiClient.get("/job/getadminjobs", { params });
+            const response = await apiClient.get("/api/v1/job/getadminjobs", { params });
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -32,7 +32,7 @@ async getJobById(jobId) {
     },
     async createJob(payload) {
         try {
-            const response = await apiClient.post("/job/post", payload);
+            const response = await apiClient.post("/api/v1/job/post", payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -40,7 +40,7 @@ async getJobById(jobId) {
     },
     async updateJob(jobId, payload) {
         try {
-            const response = await apiClient.patch(`/job/${jobId}`, payload);
+            const response = await apiClient.patch(`/api/v1/job/${jobId}`, payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -48,7 +48,7 @@ async getJobById(jobId) {
     },
     async deleteJob(jobId) {
         try {
-            const response = await apiClient.delete(`/job/${jobId}`);
+            const response = await apiClient.delete(`/api/v1/job/${jobId}`);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));

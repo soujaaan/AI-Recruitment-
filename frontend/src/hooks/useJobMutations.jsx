@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { jobService } from "@/services/job.service";
 import { applicationService } from "@/services/application.service";
-import { companyService } from "@/services/company.service";
 
 export const usePostJobMutation = () => useMutation({
     mutationFn: (payload) => jobService.createJob(payload),
@@ -45,27 +44,10 @@ export const useUpdateApplicationStatusMutation = () => useMutation({
     },
 });
 
-export const useCreateCompanyMutation = () => useMutation({
-    mutationFn: (payload) => companyService.createCompany(payload),
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["companies"] });
-    },
-});
-
-export const useUpdateCompanyMutation = () => useMutation({
-    mutationFn: ({ companyId, payload }) => companyService.updateCompany(companyId, payload),
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["companies"] });
-        queryClient.invalidateQueries({ queryKey: ["company"] });
-    },
-});
-
 export const useJobMutations = () => ({
     createJob: usePostJobMutation(),
     updateJob: useUpdateJobMutation(),
     deleteJob: useDeleteJobMutation(),
     applyJob: useApplyJobMutation(),
     updateApplicationStatus: useUpdateApplicationStatusMutation(),
-    createCompany: useCreateCompanyMutation(),
-    updateCompany: useUpdateCompanyMutation(),
 });
