@@ -17,6 +17,7 @@ const PostJob = lazy(() => import("./components/admin/PostJob"));
 const Applicants = lazy(() => import("./components/admin/Applicants"));
 const Companies = lazy(() => import("./components/admin/Companies"));
 const CompanyCreate = lazy(() => import("./components/admin/CompanyCreate"));
+const SystemAdminDashboard = lazy(() => import("./components/system-admin/SystemAdminDashboard"));
 
 const withSuspense = (element) => (
   <Suspense fallback={<LoadingScreen label="Loading page..." />}>{element}</Suspense>

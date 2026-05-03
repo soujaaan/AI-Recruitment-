@@ -12,8 +12,11 @@ import userRoute from "./routes/user.route.js";
 import jobRoute from "./routes/job.route.js";
 import applicationRoute from "./routes/application.route.js";
 import companyRoute from "./routes/company.route.js";
+import adminRoute from "./routes/admin.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
+import { User } from "./models/user.model.js";
+import bcrypt from "bcryptjs";
 
 const app = express();
 
@@ -48,6 +51,7 @@ app.use("/api/v1/user", userRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
 app.use("/api/v1/company", companyRoute);
+app.use("/api/admin", adminRoute);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -66,6 +70,29 @@ app.use(errorHandler);
 
 const startServer = async () => {
     await connectDB();
+    
+    // Seed Admin User
+    try {
+        const adminEmail = "admin@hiresense.com";
+        const adminExists = await User.findOne({ email: adminEmail });
+        if (!adminExists) {
+            const hashedPassword = await bcrypt.hash("adminhiresense", 10);
+            await User.create({
+                fullname: "System Admin",
+                email: adminEmail,
+                phoneNumber: "0000000000",
+                password: hashedPassword,
+                role: "admin",
+                profile: {
+                    profilePhoto: "",
+                },
+            });
+            console.log("Admin account seeded: admin@hiresense.com");
+        }
+    } catch (error) {
+        console.error("Failed to seed admin:", error);
+    }
+
     app.listen(env.port, () => {
         logger.info(`Server running on port ${env.port}`);
     });

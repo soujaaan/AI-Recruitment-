@@ -43,6 +43,10 @@ const userSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
+    isBlocked:{
+        type:Boolean,
+        default:false
+    },
     lastLoginAt:{
         type:Date
     }
