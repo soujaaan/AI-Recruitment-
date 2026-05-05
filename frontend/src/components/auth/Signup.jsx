@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Navbar from '../shared/Navbar'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRegisterMutation } from '@/hooks/useAuthMutations'
-import { authService } from '@/services/auth.service'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 const Signup = () => {
     const [input, setInput] = useState({
@@ -19,9 +19,9 @@ const Signup = () => {
         role: "candidate",
         file: ""
     });
+    const [isSending, setIsSending] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const registerMutation = useRegisterMutation();
 
     const changeEventHandler = (e) => {
         setInput({ ...input, [e.target.name]: e.target.value });
@@ -30,6 +30,8 @@ const Signup = () => {
     const changeFileHandler = (e) => {
         setInput({ ...input, file: e.target.files?.[0] });
     }
+
+
 
     const submitHandler = async (e) => {
         e.preventDefault();
@@ -43,31 +45,19 @@ const Signup = () => {
             formData.append("profilePhoto", input.file);
         }
 
+        setIsSending(true);
         try {
-            const result = await registerMutation.mutateAsync(formData);
-            if (result.success) {
-                toast.success(result.message);
-                // After signup, auto-login and redirect based on role
-                const loginResult = await authService.login({ email: input.email, password: input.password });
-                const user = loginResult?.user || loginResult?.data?.user;
-                const token = loginResult?.token || loginResult?.data?.token || "";
-                if (user && token) {
-                    localStorage.setItem("accessToken", token);
-                    // Dispatch auth state so Redux knows user is logged in
-                    const { setAuthState } = await import('@/redux/authSlice');
-                    const { default: store } = await import('@/redux/store');
-                    store.dispatch(setAuthState({ user, token }));
-                }
-                if (user?.role === 'candidate') {
-                    navigate("/jobs");
-                } else {
-                    navigate("/admin/dashboard");
-                }
-            }
+            await apiClient.post("/api/auth/send-otp", formData);
+            toast.success(`OTP sent to ${input.email}`);
+            navigate("/verify-otp", { state: { email: input.email } });
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || "Failed to send OTP");
+        } finally {
+            setIsSending(false);
         }
     }
+
+
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -82,11 +72,16 @@ const Signup = () => {
                     >
                         <div className="text-center mb-8">
                             <p className="section-label mb-2">Authentication</p>
-                            <h1 className="font-display font-bold text-3xl text-foreground">Create Account</h1>
-                            <p className="text-muted-foreground mt-2 text-sm">Join the AI-powered recruitment platform</p>
+                            <h1 className="font-display font-bold text-3xl text-foreground">
+                                Create Account
+                            </h1>
+                            <p className="text-muted-foreground mt-2 text-sm">
+                                Join the AI-powered recruitment platform
+                            </p>
                         </div>
 
                         <form onSubmit={submitHandler} className="space-y-5">
+
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium text-foreground">Full Name</Label>
                                 <Input
@@ -96,6 +91,7 @@ const Signup = () => {
                                     onChange={changeEventHandler}
                                     placeholder="John Doe"
                                     className="bg-surface border-border focus:border-accent focus:ring-accent/20"
+                                    required
                                 />
                             </div>
 
@@ -108,6 +104,7 @@ const Signup = () => {
                                     onChange={changeEventHandler}
                                     placeholder="you@example.com"
                                     className="bg-surface border-border focus:border-accent focus:ring-accent/20"
+                                    required
                                 />
                             </div>
 
@@ -131,8 +128,9 @@ const Signup = () => {
                                         name="password"
                                         value={input.password}
                                         onChange={changeEventHandler}
-                                        placeholder="Create a password"
+                                        placeholder="Create a password (8+ chars)"
                                         className="bg-surface border-border focus:border-accent focus:ring-accent/20 pr-10"
+                                        required
                                     />
                                     <button
                                         type="button"
@@ -152,8 +150,8 @@ const Signup = () => {
                                         onClick={() => setInput({ ...input, role: "candidate" })}
                                         className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
                                             input.role === "candidate"
-                                                ? "border-accent bg-accent/10 text-accent"
-                                                : "border-border bg-surface text-muted-foreground hover:border-accent/30"
+                                                ? "border-accent bg-accent/10 text-accent shadow-md"
+                                                : "border-border bg-surface text-muted-foreground hover:border-accent/30 hover:shadow-sm"
                                         }`}
                                     >
                                         <User className="w-4 h-4" />
@@ -164,8 +162,8 @@ const Signup = () => {
                                         onClick={() => setInput({ ...input, role: "recruiter" })}
                                         className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all ${
                                             input.role === "recruiter"
-                                                ? "border-accent bg-accent/10 text-accent"
-                                                : "border-border bg-surface text-muted-foreground hover:border-accent/30"
+                                                ? "border-accent bg-accent/10 text-accent shadow-md"
+                                                : "border-border bg-surface text-muted-foreground hover:border-accent/30 hover:shadow-sm"
                                         }`}
                                     >
                                         <Building2 className="w-4 h-4" />
@@ -175,21 +173,21 @@ const Signup = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-medium text-foreground">Profile Photo</Label>
+                                <Label className="text-sm font-medium text-foreground">Profile Photo (Optional)</Label>
                                 <Input
                                     type="file"
                                     accept="image/*"
                                     onChange={changeFileHandler}
-                                    className="bg-surface border-border focus:border-accent focus:ring-accent/20 file:bg-surface-elevated file:border-0 file:text-foreground file:rounded-lg"
+                                    className="bg-surface border-border focus:border-accent focus:ring-accent/20 file:bg-surface-elevated file:border-0 file:text-foreground file:rounded-lg file:backdrop-blur-sm"
                                 />
                             </div>
 
                             <Button
                                 type="submit"
                                 className="w-full btn-neon"
-                                disabled={registerMutation.isPending}
+                                disabled={isSending}
                             >
-                                {registerMutation.isPending ? "Creating account..." : "Create Account"}
+                                {isSending ? "Sending OTP..." : "Create Account"}
                                 <ArrowRight className="ml-2 w-4 h-4" />
                             </Button>
                         </form>

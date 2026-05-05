@@ -3,9 +3,10 @@ import { apiClient, getApiErrorMessage } from "@/lib/api";
 const unwrap = (response) => response.data;
 
 export const authService = {
+
     async register(formData) {
         try {
-            const response = await apiClient.post("/api/v1/user/register", formData, {
+            const response = await apiClient.post("/api/auth/send-otp", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             return unwrap(response);
@@ -15,7 +16,15 @@ export const authService = {
     },
     async registerJson(payload) {
         try {
-            const response = await apiClient.post("/api/v1/user/register", payload);
+            const response = await apiClient.post("/api/auth/send-otp", payload);
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+    async verifyOtp(payload) {
+        try {
+            const response = await apiClient.post("/api/auth/verify-otp", payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));

@@ -15,6 +15,14 @@ const applicationSchema = new mongoose.Schema({
         type:String,
         enum:['applied', 'shortlisted', 'rejected'],
         default:'applied'
+    },
+    resumeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Resume'
+    },
+    atsScore: {
+        type: Number,
+        default: 0
     }
 },{timestamps:true});
 

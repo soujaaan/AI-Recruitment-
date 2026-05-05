@@ -1,5 +1,6 @@
 import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
+import { Resume } from "../models/resume.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
@@ -35,10 +36,14 @@ export const applyJob = asyncHandler(async (req, res) => {
         throw new ApiError(400, "You have already applied for this job");
     }
 
+    const userResume = await Resume.findOne({ userId });
+
     const application = await Application.create({
         job: jobId,
         applicant: userId,
         status: "applied",
+        resumeId: userResume ? userResume._id : null,
+        atsScore: 0 // Will be calculated later
     });
 
     job.applications = [...new Set([...(job.applications || []), application._id])];
@@ -101,7 +106,7 @@ export const getApplicants = asyncHandler(async (req, res) => {
     const totalApplications = await Application.countDocuments({ job: jobId });
 
     const applications = await Application.find({ job: jobId })
-        .sort({ createdAt: -1 })
+        .sort({ atsScore: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .populate({

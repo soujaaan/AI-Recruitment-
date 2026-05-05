@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 const Home = lazy(() => import("./components/Home"));
 const Login = lazy(() => import("./components/auth/Login"));
 const Signup = lazy(() => import("./components/auth/Signup"));
+const VerifyOTP = lazy(() => import("./components/auth/VerifyOTP"));
 const Jobs = lazy(() => import("./components/Jobs"));
 const Browse = lazy(() => import("./components/Browse"));
 const Profile = lazy(() => import("./components/Profile"));
@@ -30,11 +31,15 @@ const appRouter = createBrowserRouter([
   },
   {
     path: '/login',
-    element: withSuspense(<Home />)
+    element: withSuspense(<Login />)
   },
   {
     path: '/signup',
-    element: withSuspense(<Home />)
+    element: withSuspense(<Signup />)
+  },
+  {
+    path: '/verify-otp',
+    element: withSuspense(<VerifyOTP />)
   },
   {
     path: "/jobs",

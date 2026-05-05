@@ -33,7 +33,12 @@ const Login = () => {
                 }
             }
         } catch (error) {
-            toast.error(error.message);
+            const msg = error.message.toLowerCase();
+            if (msg.includes('verify') || msg.includes('email')) {
+                toast.error('Please verify your email first. Check your inbox for OTP.');
+            } else {
+                toast.error(error.message);
+            }
         }
     }
 

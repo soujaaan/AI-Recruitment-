@@ -1,5 +1,9 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
+
+console.log("API KEY LOADED:", process.env.OPENAI_API_KEY);
 import cors from "cors";
 import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
@@ -13,7 +17,12 @@ import jobRoute from "./routes/job.route.js";
 import applicationRoute from "./routes/application.route.js";
 import companyRoute from "./routes/company.route.js";
 import adminRoute from "./routes/admin.route.js";
+import resumeRoute from "./routes/resume.route.js";
+import atsRoute from "./routes/ats.route.js";
+import authRoute from "./routes/auth.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
+
+import path from "path";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
 import { User } from "./models/user.model.js";
 import bcrypt from "bcryptjs";
@@ -46,12 +55,20 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(requestLogger);
 
+
+
 // API Routes
+app.use("/api/auth", authRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
 app.use("/api/v1/company", companyRoute);
 app.use("/api/admin", adminRoute);
+app.use("/api/resume", resumeRoute);
+app.use("/api/ats", atsRoute);
+
+// Serve uploads folder locally
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Health check
 app.get("/health", (req, res) => {

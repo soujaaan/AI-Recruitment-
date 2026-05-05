@@ -1,8 +1,20 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import * as fs from "fs/promises";
+import path from "path";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 import { User } from "../models/user.model.js";
+import { Resume } from "../models/resume.model.js";
+import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
+import { extractStructuredResume, generateATSScore } from "../services/ai.service.js";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
+import { sendOTP } from "../utils/email.js";
+import crypto from "crypto";
+import { OtpTemp } from "../models/OtpTemp.js";
+
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -10,6 +22,25 @@ import { sendSuccess } from "../utils/response.js";
 import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { normalizeRole, isValidRole } from "../utils/role.utils.js";
 import { logger } from "../utils/logger.js";
+
+const calculateRuleScore = (data) => {
+  let score = 0;
+  const skills = data.skills || [];
+  const projects = data.projects || [];
+  const experience = data.experience || [];
+  const education = data.education || [];
+
+  if (skills.length >= 8) score += 30;
+  else if (skills.length >= 5) score += 20;
+
+  if (projects.length >= 4) score += 25;
+  else if (projects.length >= 2) score += 15;
+
+  if (experience.length > 0) score += 20;
+  if (education.length > 0) score += 10;
+
+  return Math.min(score, 100);
+};
 
 const buildSafeUser = (user) => ({
     _id: user._id,
@@ -32,7 +63,7 @@ const buildCookieOptions = () => ({
     path: "/",
 });
 
-export const register = asyncHandler(async (req, res) => {
+export const sendOtp = asyncHandler(async (req, res) => {
     const fullName = req.body.fullName || req.body.fullname || "";
     const phoneNumber = req.body.phone || req.body.phoneNumber || "";
     const emailField = req.body.email || "";
@@ -42,74 +73,124 @@ export const register = asyncHandler(async (req, res) => {
     const normalizedEmail = String(emailField).toLowerCase().trim();
 
     if (!fullName || !emailField || !passwordField || !roleField) {
-        throw new ApiError(400, "Missing required fields");
+        throw new ApiError(400, "Full name, email, password, and role are required");
     }
 
     if (!isValidRole(roleField)) {
-        throw new ApiError(400, "Role must be candidate or recruiter");
+        throw new ApiError(400, "Role must be 'candidate' or 'recruiter'");
     }
 
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-        throw new ApiError(400, "User already exists with this email");
+        throw new ApiError(400, "User already exists with this email. Please login.");
     }
 
-    const hashedPassword = await bcrypt.hash(passwordField, 10);
+    const existingTemp = await OtpTemp.findOne({ email: normalizedEmail });
+    if (existingTemp) {
+        const now = new Date();
+        const timeSinceLastSent = (now.getTime() - existingTemp.lastSentAt.getTime()) / 1000;
+        if (timeSinceLastSent < 60) {
+            throw new ApiError(429, `Please wait ${Math.ceil(60 - timeSinceLastSent)}s before resending OTP.`);
+        }
+        if (existingTemp.attempts >= 3) {
+            throw new ApiError(429, "Too many OTP requests. Please try again later.");
+        }
+    }
 
-    // Store legacy "Candidate" for DB compatibility, but normalize internally
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const hashedPassword = await bcrypt.hash(passwordField, 10);
     const dbRole = roleField === "candidate" ? "Candidate" : roleField;
 
-    const createdUser = await User.create({
-        fullname: fullName,
-        email: normalizedEmail,
-        phoneNumber: phoneNumber,
-        password: hashedPassword,
-        role: dbRole,
-        profile: {
-            profilePhoto: "",
-        },
-    });
-
-    const fileDataUri = req.file ? getDataUri(req.file) : null;
-    if (fileDataUri?.content) {
-        const maxSizeBytes = (env.uploadMaxSizeMb || 5) * 1024 * 1024;
-        if (req.file.size > maxSizeBytes) {
-            throw new ApiError(400, `File size exceeds ${env.uploadMaxSizeMb || 5}MB limit`);
+    let profilePhotoUrl = "";
+    if (req.file) {
+        const fileDataUri = getDataUri(req.file);
+        if (fileDataUri?.content) {
+            const maxSizeBytes = (env.uploadMaxSizeMb || 5) * 1024 * 1000;
+            if (req.file.size > maxSizeBytes) {
+                throw new ApiError(400, `File size exceeds ${env.uploadMaxSizeMb || 5}MB limit`);
+            }
+            if (!/^image\//.test(req.file.mimetype)) {
+                throw new ApiError(400, "Only image files allowed for profile photo");
+            }
+            const cloudResponse = await cloudinary.uploader.upload(fileDataUri.content);
+            profilePhotoUrl = cloudResponse.secure_url;
         }
-
-        const isImageFile = /^image\//.test(req.file.mimetype);
-        if (!isImageFile) {
-            throw new ApiError(400, "Only image files are allowed for profile photo");
-        }
-
-        const cloudResponse = await cloudinary.uploader.upload(fileDataUri.content);
-        createdUser.profile.profilePhoto = cloudResponse.secure_url;
-        await createdUser.save();
     }
 
-    const token = jwt.sign(
+    await OtpTemp.findOneAndUpdate(
+        { email: normalizedEmail },
         {
-            userId: createdUser._id.toString(),
-            role: normalizeRole(createdUser.role),
+            fullname: fullName,
+            phoneNumber: phoneNumber,
+            password: hashedPassword,
+            role: dbRole,
+            profilePhoto: profilePhotoUrl,
+            otp: hashedOtp,
+            otpExpires,
+            lastSentAt: new Date(),
+            $inc: { attempts: existingTemp ? 1 : 0 }
         },
-        env.jwtSecret,
-        { expiresIn: env.jwtExpiresIn }
+        { upsert: true, new: true }
     );
 
-    const safeUser = buildSafeUser(createdUser);
+    try {
+        await sendOTP(normalizedEmail, otp);
+    } catch (error) {
+        logger.error(`Failed to send OTP to ${normalizedEmail}:`, error);
+        throw new ApiError(500, "Failed to send verification email. Please try again.");
+    }
 
-    res.cookie("token", token, buildCookieOptions());
+    return sendSuccess(res, 200, null, "OTP sent successfully to your email.");
+});
 
-    return sendSuccess(
-        res,
-        201,
-        {
-            user: safeUser,
-            token,
-        },
-        "Account created successfully",
-        { user: safeUser, token }
-    );
+export const verifyOtp = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP are required");
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const tempUser = await OtpTemp.findOne({ email: normalizedEmail });
+
+    if (!tempUser) {
+        throw new ApiError(400, "OTP session expired or not found. Please register again.");
+    }
+
+    if (new Date() > tempUser.otpExpires) {
+        throw new ApiError(400, "OTP has expired. Please request a new one.");
+    }
+
+    if (tempUser.attempts > 5) {
+        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+    }
+
+    const hashedInputOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    if (hashedInputOtp !== tempUser.otp) {
+        tempUser.attempts += 1;
+        await tempUser.save();
+        throw new ApiError(400, "Invalid OTP");
+    }
+
+    // OTP is valid -> Create final user
+    const user = new User({
+        fullname: tempUser.fullname,
+        email: tempUser.email,
+        phoneNumber: tempUser.phoneNumber,
+        password: tempUser.password, // already hashed
+        role: tempUser.role,
+        profile: { profilePhoto: tempUser.profilePhoto },
+        isEmailVerified: true
+    });
+
+    await user.save();
+    await OtpTemp.deleteOne({ _id: tempUser._id });
+
+    logger.info(`User registered via OTP: ${user.email} (${user.role})`);
+    
+    // We navigate to login directly, no token needed for now as per the prompt logic ("navigate('/login')")
+    return sendSuccess(res, 201, { userId: user._id }, "Registration and verification successful!");
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -130,15 +211,19 @@ export const login = asyncHandler(async (req, res) => {
     const normalizedInputRole = normalizeRole(role);
 
     if (normalizedInputRole && normalizedInputRole !== normalizedUserRole) {
-        throw new ApiError(403, "Account does not exist with the current role");
+        throw new ApiError(403, "Account does not exist with this role");
     }
 
     if (!env.jwtSecret) {
-        throw new ApiError(500, "JWT secret is not configured");
+        throw new ApiError(500, "Server configuration error");
     }
 
     if (user.isActive === false) {
         throw new ApiError(403, "Account is deactivated");
+    }
+
+    if (user.isBlocked) {
+        throw new ApiError(403, "Account is blocked");
     }
 
     const token = jwt.sign(
@@ -157,6 +242,8 @@ export const login = asyncHandler(async (req, res) => {
 
     res.cookie("token", token, buildCookieOptions());
 
+    logger.info(`User logged in: ${user.email} (${normalizedUserRole})`);
+
     return sendSuccess(
         res,
         200,
@@ -164,7 +251,7 @@ export const login = asyncHandler(async (req, res) => {
             user: safeUser,
             token,
         },
-        `Welcome back ${safeUser.fullname}`,
+        `Welcome back, ${safeUser.fullname}!`,
         { user: safeUser, token }
     );
 });
@@ -175,6 +262,9 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
+    console.log("Update Profile - req.body:", req.body);
+    console.log("Update Profile - req.file:", req.file);
+    
     const userId = req.user?.id || req.id;
     const user = await User.findById(userId);
 
@@ -197,13 +287,11 @@ export const updateProfile = asyncHandler(async (req, res) => {
         if (trimmedEmail.length === 0) {
             throw new ApiError(400, "Email cannot be empty");
         }
-        // Prevent email change to an existing user's email
         if (trimmedEmail !== user.email) {
             const existing = await User.findOne({ email: trimmedEmail });
             if (existing) {
                 throw new ApiError(400, "Email is already in use");
             }
-            // Mark email as unverified if changing
             user.email = trimmedEmail;
         }
     }
@@ -231,7 +319,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
     const fileDataUri = req.file ? getDataUri(req.file) : null;
     if (fileDataUri?.content) {
-        // Enforce file size limit at controller level
         const maxSizeBytes = (env.uploadMaxSizeMb || 5) * 1024 * 1024;
         if (req.file.size > maxSizeBytes) {
             throw new ApiError(400, `File size exceeds ${env.uploadMaxSizeMb || 5}MB limit`);
@@ -239,7 +326,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
         const isResumeFile = /pdf$/i.test(req.file.originalname) || req.file.mimetype === "application/pdf";
 
-        // Only allow PDF for resume; images for profile photo
         const isImageFile = /^image\//.test(req.file.mimetype);
 
         if (!isResumeFile && !isImageFile) {
@@ -251,6 +337,63 @@ export const updateProfile = asyncHandler(async (req, res) => {
         if (isResumeFile) {
             user.profile.resume = cloudResponse.secure_url;
             user.profile.resumeOriginalName = req.file.originalname;
+
+            let resumeDoc = await Resume.findOne({ userId: user._id });
+            if (resumeDoc) {
+                resumeDoc.fileUrl = cloudResponse.secure_url;
+                resumeDoc.parsedData = null;
+                await resumeDoc.save();
+            } else {
+                await Resume.create({
+                    userId: user._id,
+                    fileUrl: cloudResponse.secure_url,
+                    parsedData: null
+                });
+            }
+
+            // AI Resume Screening & ATS Scoring Pipeline
+            try {
+                logger.info(`Starting ATS analysis for user ${user._id}, file: ${req.file.path}`);
+                
+                const pdfBuffer = await fs.readFile(req.file.path);
+                const pdfData = await pdfParse(pdfBuffer);
+                let text = pdfData?.text?.trim() || '';
+                
+                // Clean text
+                text = text.replace(/\\s+/g, ' ').trim();
+                
+                if (text.length < 200) {
+                    logger.warn('Resume text too short, skipping analysis');
+                } else {
+                    const extractedData = await extractStructuredResume(text);
+                    const ruleScore = calculateRuleScore(extractedData);
+                    const aiData = await generateATSScore(extractedData);
+                    const aiScore = aiData.score || 0;
+                    const finalScore = Math.round(ruleScore * 0.4 + aiScore * 0.6);
+                    
+                    const analysisData = {
+                        userId: user._id,
+                        filePath: req.file.path,
+                        extractedData,
+                        ruleScore,
+                        aiScore,
+                        finalScore,
+                        strengths: aiData.strengths || [],
+                        weaknesses: aiData.weaknesses || [],
+                        suggestions: aiData.suggestions || []
+                    };
+                    
+                    await ResumeAnalysis.findOneAndUpdate(
+                        { userId: user._id },
+                        analysisData,
+                        { upsert: true, new: true }
+                    );
+                    
+                    logger.info(`ATS analysis complete for ${user.email}: ${finalScore}`);
+                }
+            } catch (error) {
+                logger.error(`ATS analysis failed for ${user.email}:`, error);
+            }
         } else {
             user.profile.profilePhoto = cloudResponse.secure_url;
         }
@@ -258,14 +401,30 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
     await user.save();
 
+    // Get latest ATS analysis for response
+    const latestAnalysis = await ResumeAnalysis.findOne({ userId: user._id }).sort({ createdAt: -1 }).lean();
+
+    const responseData = {
+        user: buildSafeUser(user)
+    };
+
+    if (latestAnalysis) {
+        responseData.atsAnalysis = {
+            finalScore: latestAnalysis.finalScore,
+            ruleScore: latestAnalysis.ruleScore,
+            aiScore: latestAnalysis.aiScore,
+            strengths: latestAnalysis.strengths,
+            weaknesses: latestAnalysis.weaknesses,
+            suggestions: latestAnalysis.suggestions
+        };
+    }
+
     return sendSuccess(
         res,
         200,
-        {
-            user: buildSafeUser(user),
-        },
+        responseData,
         "Profile updated successfully",
-        { user: buildSafeUser(user) }
+        responseData
     );
 });
 
@@ -284,7 +443,6 @@ export const getUsers = asyncHandler(async (req, res) => {
     const { page, limit, skip } = getPagination(req.query);
     const search = String(req.query.search || req.query.keyword || "").trim();
 
-    // Minimum search length
     if (search && search.length < 3) {
         throw new ApiError(400, "Search query must be at least 3 characters");
     }
@@ -335,7 +493,6 @@ export const updateUserRole = asyncHandler(async (req, res) => {
         if (!isValidRole(normalized)) {
             throw new ApiError(400, "Invalid role");
         }
-        // Prevent self-demotion if last admin
         if (
             normalizeRole(user.role) === "admin" &&
             normalized !== "admin" &&
@@ -361,7 +518,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Cascade: delete user's applications
     const { Application } = await import("../models/application.model.js");
     await Application.deleteMany({ applicant: user._id });
 
@@ -371,4 +527,3 @@ export const deleteUser = asyncHandler(async (req, res) => {
 
     return sendSuccess(res, 200, { userId: user._id }, "User deleted successfully");
 });
-

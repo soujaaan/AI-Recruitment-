@@ -1,32 +1,22 @@
-# TODO - Data Contract Unification
+# Resume Analysis UI Integration TODO
 
-## Completed Changes
+## Frontend Plan for Profile.jsx Enhancement
 
-### Backend Changes
-- [x] 1. Update job controller to use salaryRange, openings, company object
-- [x] 2. Update validation middleware with new field names
-- [x] 3. Update updateJob handler with new field names
+**Status Legend**: ⬜ Pending | 🟡 In Progress | 🟢 Done
 
-### Frontend Changes
-- [x] 1. Update PostJob.jsx with standardized form fields
-- [x] 2. Transform on submit: requirements → Array, openings → Number
-- [x] 3. Use company object structure
+### 1. Create Custom Hook
+- 🟢 `frontend/src/hooks/useResumeAnalysis.jsx`
 
-### Data Contract
-```js
-{
-  title,
-  description,
-  jobType,
-  experienceLevel,
-  salaryRange,
-  openings,
-  requirements: [],
-  location,
-  company: { name, website, location }
-}
-```
+### 2. Create Reusable Component
+- 🟢 `frontend/src/components/ResumeAnalysisCard.jsx`
 
-## Status: ✅ COMPLETE
+### 3. Integrate into Profile
+- 🟢 Edit `frontend/src/components/Profile.jsx`
 
-Frontend and backend now use consistent field names. No more 400 errors from mismatched payloads.
+### 4. Test & Verify
+- [ ] Frontend dev server
+- [ ] Check UI/loading/empty states
+- [ ] Responsive test
+
+### 5. Completion
+- [ ] attempt_completion

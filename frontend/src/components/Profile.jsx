@@ -133,6 +133,17 @@ const Profile = () => {
                                     )}
                                 </GlassCard>
                             </motion.div>
+
+                            {/* Resume Analysis Card */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 40 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: 0.2 }}
+                                className="lg:col-span-4"
+                            >
+                                <ResumeAnalysisCard />
+                            </motion.div>
                         </div>
 
                         {/* Applications */}

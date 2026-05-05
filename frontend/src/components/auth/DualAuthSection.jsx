@@ -70,16 +70,9 @@ const DualAuthSection = () => {
     setIsSubmitting(true);
     try {
       const payload = { ...data, role: selectedRole };
-      const result = await authService.registerJson(payload);
-      const user = result?.user || result?.data?.user || null;
-      const token = result?.token || result?.data?.token || "";
-      dispatch(setAuthState({ user, token }));
-      toast.success(result?.message || "Account created!");
-      if (user?.role === "recruiter" || user?.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+      await authService.registerJson(payload);
+      toast.success("OTP sent to your email!");
+      navigate("/verify-otp", { state: { email: data.email } });
     } catch (error) {
       toast.error(error.message || "Signup failed");
     } finally {

@@ -33,5 +33,6 @@ export const env = {
     rateLimitWindowMs: toNumber(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000),
     rateLimitMax: toNumber(process.env.RATE_LIMIT_MAX, 100),
     uploadMaxSizeMb: toNumber(process.env.UPLOAD_MAX_SIZE_MB, 5),
+
 };
 

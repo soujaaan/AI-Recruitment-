@@ -43,14 +43,26 @@ const userSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
-    isBlocked:{
-        type:Boolean,
-        default:false
+    isBlocked: {
+        type: Boolean,
+        default: false
     },
-    lastLoginAt:{
-        type:Date
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
+    otp: {
+        type: String,
+        default: null
+    },
+    otpExpiry: {
+        type: Date,
+        default: null
+    },
+    lastLoginAt: {
+        type: Date
     }
-},{timestamps:true});
+}, { timestamps: true });
 
 userSchema.index({ fullname: "text", email: "text" });
 

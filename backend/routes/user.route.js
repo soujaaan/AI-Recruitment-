@@ -1,14 +1,13 @@
 import express from "express";
 import isAuthenticated from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
-import { profilePhotoUpload } from "../middlewares/upload.middleware.js";
+import { profilePhotoUpload, resumeUpload, handleMulterError } from "../middlewares/upload.middleware.js";
 import {
     deleteUser,
     getCurrentUser,
     getUsers,
     login,
     logout,
-    register,
     updateProfile,
     updateUserRole,
 } from "../controllers/user.controller.js";
@@ -20,11 +19,9 @@ import {
 } from "../middlewares/validation.middleware.js";
 
 const router = express.Router();
-
-router.route("/register").post(profilePhotoUpload, validateRegistration, register);
 router.route("/login").post(validateLogin, login);
 router.route("/logout").post(isAuthenticated, logout);
-router.route("/profile/update").post(isAuthenticated, profilePhotoUpload, updateProfile);
+router.route("/profile/update").post(isAuthenticated, resumeUpload, handleMulterError, updateProfile);
 router.route("/me").get(isAuthenticated, getCurrentUser);
 
 router.route("/admin/users").get(isAuthenticated, authorizeRoles("admin"), getUsers);
