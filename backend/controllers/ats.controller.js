@@ -2,72 +2,40 @@ import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import { Application } from "../models/application.model.js";
-import OpenAI from "openai";
+
+// Deterministic ATS scoring integration.
+//
+// This project now persists ATS scores deterministically via the Flask ML service,
+// during resume upload (see resume.controller.js).
+//
+// This controller endpoint is kept for backward compatibility with routes.
+// It updates an existing Application. No LLM/Groq/OpenAI calls are performed here.
 
 export const calculateATS = asyncHandler(async (req, res) => {
-    const { jobDescription, parsedData } = req.body;
+    const { applicationId, atsScore } = req.body;
 
-    if (!jobDescription || !parsedData) {
-        throw new ApiError(400, "Both jobDescription and parsedData are required");
+    if (!applicationId) {
+        throw new ApiError(400, "applicationId is required");
+    }
+    if (atsScore === undefined || atsScore === null) {
+        throw new ApiError(400, "atsScore is required" );
     }
 
-    try {
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-        });
-
-        const prompt = `
-Act as an ATS (Applicant Tracking System). Analyze the following resume against the job description and calculate an ATS match score.
-Use the following weighting:
-- Skill Match (40%)
-- Experience Match (25%)
-- Keyword Match (15%)
-- Education (10%)
-- Bonus (10%)
-
-Job Description:
-${jobDescription}
-
-Parsed Resume Data:
-${JSON.stringify(parsedData)}
-
-Return strictly valid JSON in the following format (no markdown):
-{
-  "score": number, // out of 100
-  "breakdown": {
-    "skillMatch": number, // out of 40
-    "experienceMatch": number, // out of 25
-    "keywordMatch": number, // out of 15
-    "education": number, // out of 10
-    "bonus": number // out of 10
-  },
-  "feedback": "A short summary of why this score was given."
-}
-`;
-
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }]
-        });
-
-        const rawContent = completion.choices[0].message.content;
-        let result;
-        try {
-            const cleanContent = rawContent.replace(/```json\n?|\n?```/gi, '').trim();
-            result = JSON.parse(cleanContent);
-        } catch (jsonErr) {
-            throw new Error("AI returned invalid JSON: " + rawContent);
-        }
-
-        // Optional: Save to Application if applicationId is provided
-        const { applicationId } = req.body;
-        if (applicationId) {
-            await Application.findByIdAndUpdate(applicationId, { atsScore: result.score });
-        }
-
-        return sendSuccess(res, 200, result, "ATS Score calculated successfully");
-    } catch (error) {
-        console.error("ATS Calculation Error:", error);
-        throw new ApiError(500, `Failed to calculate ATS score: ${error.message}`);
+    const normalized = Number(atsScore);
+    if (!Number.isFinite(normalized)) {
+        throw new ApiError(400, "atsScore must be a number");
     }
+
+    const application = await Application.findByIdAndUpdate(
+        applicationId,
+        { atsScore: Math.max(0, Math.min(100, normalized)) },
+        { new: true }
+    );
+
+    if (!application) {
+        throw new ApiError(404, "Application not found");
+    }
+
+    return sendSuccess(res, 200, { application }, "ATS score updated successfully");
 });
+

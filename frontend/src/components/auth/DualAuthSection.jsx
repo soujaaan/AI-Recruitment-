@@ -209,7 +209,7 @@ const DualAuthSection = () => {
                   <Label className="text-sm font-medium text-foreground">Full Name</Label>
                   <Input
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Abhishek Banerjee"
                     {...signupForm.register("fullname")}
                     className="bg-surface border-border focus:border-accent focus:ring-accent/20"
                   />

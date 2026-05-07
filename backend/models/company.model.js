@@ -18,6 +18,15 @@ const companySchema = new mongoose.Schema({
     logo: {
         type: String // URL to cloudinary
     },
+    industry: {
+        type: String
+    },
+    employeeCount: {
+        type: Number
+    },
+    foundedYear: {
+        type: Number
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

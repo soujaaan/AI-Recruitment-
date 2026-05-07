@@ -89,7 +89,7 @@ const Signup = () => {
                                     name="fullname"
                                     value={input.fullname}
                                     onChange={changeEventHandler}
-                                    placeholder="John Doe"
+                                    placeholder="Abhishek Banerjee"
                                     className="bg-surface border-border focus:border-accent focus:ring-accent/20"
                                     required
                                 />

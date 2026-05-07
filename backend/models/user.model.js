@@ -37,7 +37,15 @@ const userSchema = new mongoose.Schema({
         profilePhoto:{
             type:String,
             default:""
-        }
+        },
+        education: [{type:String}],
+        experience: [{type:String}],
+        atsScore: {type:Number, default:0},
+        aiMatchScore: {type:Number, default:0},
+        preferredRoles: [{type:String}],
+        location: {type:String},
+        github: {type:String},
+        linkedin: {type:String}
     },
     isActive:{
         type:Boolean,

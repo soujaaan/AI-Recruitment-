@@ -3,7 +3,7 @@ dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
 
-console.log("API KEY LOADED:", process.env.OPENAI_API_KEY);
+
 import cors from "cors";
 import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
@@ -20,6 +20,7 @@ import adminRoute from "./routes/admin.route.js";
 import resumeRoute from "./routes/resume.route.js";
 import atsRoute from "./routes/ats.route.js";
 import authRoute from "./routes/auth.route.js";
+import aiRoutes from "./routes/ai.routes.js";
 import { requestLogger } from "./utils/requestLogger.js";
 
 import path from "path";
@@ -66,6 +67,7 @@ app.use("/api/v1/company", companyRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/resume", resumeRoute);
 app.use("/api/ats", atsRoute);
+app.use("/api/ai", aiRoutes);
 
 // Serve uploads folder locally
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

@@ -7,43 +7,35 @@ const resumeAnalysisSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    filePath: {
+    atsScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
+    },
+    predictedRole: {
         type: String,
-        required: true
+        default: ""
     },
-    extractedData: {
-        type: Object,
-        default: {}
-    },
-    ruleScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0
-    },
-    aiScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0
-    },
-    finalScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0
-    },
+    skills: [{
+        type: String
+    }],
     strengths: [{
         type: String
     }],
     weaknesses: [{
         type: String
     }],
-    suggestions: [{
+    recommendations: [{
         type: String
-    }]
+    }],
+    analyzedAt: {
+        type: Date,
+        default: Date.now
+    }
 }, { timestamps: true });
 
 resumeAnalysisSchema.index({ userId: 1, createdAt: -1 });
 
 export const ResumeAnalysis = mongoose.model("ResumeAnalysis", resumeAnalysisSchema);
+export default ResumeAnalysis;

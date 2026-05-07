@@ -66,5 +66,6 @@ const isAuthenticated = async (req, res, next) => {
     }
 };
 
+export const protectRoute = isAuthenticated;
 export default isAuthenticated;
 

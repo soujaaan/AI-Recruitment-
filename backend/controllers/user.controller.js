@@ -8,7 +8,7 @@ const pdfParse = require("pdf-parse");
 import { User } from "../models/user.model.js";
 import { Resume } from "../models/resume.model.js";
 import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
-import { extractStructuredResume, generateATSScore } from "../services/ai.service.js";
+
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { sendOTP } from "../utils/email.js";
@@ -22,25 +22,6 @@ import { sendSuccess } from "../utils/response.js";
 import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { normalizeRole, isValidRole } from "../utils/role.utils.js";
 import { logger } from "../utils/logger.js";
-
-const calculateRuleScore = (data) => {
-  let score = 0;
-  const skills = data.skills || [];
-  const projects = data.projects || [];
-  const experience = data.experience || [];
-  const education = data.education || [];
-
-  if (skills.length >= 8) score += 30;
-  else if (skills.length >= 5) score += 20;
-
-  if (projects.length >= 4) score += 25;
-  else if (projects.length >= 2) score += 15;
-
-  if (experience.length > 0) score += 20;
-  if (education.length > 0) score += 10;
-
-  return Math.min(score, 100);
-};
 
 const buildSafeUser = (user) => ({
     _id: user._id,
@@ -365,31 +346,11 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 if (text.length < 200) {
                     logger.warn('Resume text too short, skipping analysis');
                 } else {
-                    const extractedData = await extractStructuredResume(text);
-                    const ruleScore = calculateRuleScore(extractedData);
-                    const aiData = await generateATSScore(extractedData);
-                    const aiScore = aiData.score || 0;
-                    const finalScore = Math.round(ruleScore * 0.4 + aiScore * 0.6);
-                    
-                    const analysisData = {
-                        userId: user._id,
-                        filePath: req.file.path,
-                        extractedData,
-                        ruleScore,
-                        aiScore,
-                        finalScore,
-                        strengths: aiData.strengths || [],
-                        weaknesses: aiData.weaknesses || [],
-                        suggestions: aiData.suggestions || []
-                    };
-                    
-                    await ResumeAnalysis.findOneAndUpdate(
-                        { userId: user._id },
-                        analysisData,
-                        { upsert: true, new: true }
-                    );
-                    
-                    logger.info(`ATS analysis complete for ${user.email}: ${finalScore}`);
+                    // Deterministic ATS scoring now must ONLY happen via Flask ML service.
+                    // This profile update path persists the uploaded resume; scoring will be computed
+                    // through the deterministic ML ATS pipeline when /analyze is invoked.
+                    logger.info(`Resume uploaded for user ${user._id}. Skipping non-deterministic ATS scoring in this flow.`);
+
                 }
             } catch (error) {
                 logger.error(`ATS analysis failed for ${user.email}:`, error);
@@ -410,12 +371,12 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
     if (latestAnalysis) {
         responseData.atsAnalysis = {
-            finalScore: latestAnalysis.finalScore,
-            ruleScore: latestAnalysis.ruleScore,
-            aiScore: latestAnalysis.aiScore,
+            atsScore: latestAnalysis.atsScore,
+            predictedRole: latestAnalysis.predictedRole,
+            skills: latestAnalysis.skills,
             strengths: latestAnalysis.strengths,
             weaknesses: latestAnalysis.weaknesses,
-            suggestions: latestAnalysis.suggestions
+            recommendations: latestAnalysis.recommendations
         };
     }
 
