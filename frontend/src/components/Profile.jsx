@@ -5,7 +5,7 @@ import UpdateProfileDialog from './UpdateProfileDialog';
 import ProfileHeader from './profile/ProfileHeader';
 import ProfileCard from './profile/ProfileCard';
 import ProfileCompletion from './profile/ProfileCompletion';
-import ResumeAnalysisCard from './profile/ResumeAnalysisCard';
+import AIResumeWorkspace from './profile/AIResumeWorkspace';
 import ApplicationTracker from './profile/ApplicationTracker';
 import AIAssistant from './profile/AIAssistant';
 import RecentActivity from './profile/RecentActivity';
@@ -38,7 +38,7 @@ const Profile = () => {
 
                     {/* MAIN DASHBOARD */}
                     <div className="lg:col-span-8 xl:col-span-9 space-y-6">
-                        <ResumeAnalysisCard />
+                        <AIResumeWorkspace />
                         <ApplicationTracker />
 
                         {/* Bottom Row */}

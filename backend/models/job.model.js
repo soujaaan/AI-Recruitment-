@@ -76,6 +76,18 @@ company: {
     isFlagged: {
         type: Boolean,
         default: false
+    },
+    assessmentEnabled: {
+        type: Boolean,
+        default: true
+    },
+    assessmentDuration: {
+        type: Number, // in minutes
+        default: 15
+    },
+    assessmentQuestionCount: {
+        type: Number,
+        default: 10
     }
 }, { timestamps: true });
 

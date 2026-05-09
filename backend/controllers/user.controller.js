@@ -82,7 +82,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const hashedPassword = await bcrypt.hash(passwordField, 10);
-    const dbRole = roleField === "candidate" ? "Candidate" : roleField;
+    const dbRole = roleField === "candidate" ? "candidate" : roleField;
 
     let profilePhotoUrl = "";
     if (req.file) {
@@ -332,29 +332,69 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 });
             }
 
-            // AI Resume Screening & ATS Scoring Pipeline
+            // AI Resume Screening & ATS Scoring Pipeline (deterministic ML via Flask)
             try {
-                logger.info(`Starting ATS analysis for user ${user._id}, file: ${req.file.path}`);
-                
+                logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.path}`);
+
                 const pdfBuffer = await fs.readFile(req.file.path);
                 const pdfData = await pdfParse(pdfBuffer);
                 let text = pdfData?.text?.trim() || '';
-                
-                // Clean text
-                text = text.replace(/\\s+/g, ' ').trim();
-                
-                if (text.length < 200) {
-                    logger.warn('Resume text too short, skipping analysis');
-                } else {
-                    // Deterministic ATS scoring now must ONLY happen via Flask ML service.
-                    // This profile update path persists the uploaded resume; scoring will be computed
-                    // through the deterministic ML ATS pipeline when /analyze is invoked.
-                    logger.info(`Resume uploaded for user ${user._id}. Skipping non-deterministic ATS scoring in this flow.`);
 
+                // Clean text for logging only; Flask also cleans internally
+                text = text.replace(/\s+/g, ' ').trim();
+
+                logger.info(`Extracted resume text length=${text.length} for user ${user._id}`);
+                if (text.length < 200) {
+                    logger.warn(`Resume text too short (<200). Will NOT call Flask ML. user=${user._id}`);
+                } else {
+                    // Call Flask ATS service via the existing deterministic pipeline
+                    const { aiAnalyzeResume } = await import("../services/resumeAnalysis.service.js");
+                    const ml = await aiAnalyzeResume(text);
+                    logger.info(`Flask ATS returned for user ${user._id}`, {
+                        atsScore: ml?.atsScore,
+                        predictedRole: ml?.predictedRole,
+                    });
+
+                    const deterministicAnalysis = {
+                        atsScore: ml?.atsScore ?? 0,
+                        predictedRole: ml?.predictedRole ?? "",
+                        skills: Array.isArray(ml?.skills) ? ml.skills : [],
+                        strengths: Array.isArray(ml?.strengths) ? ml.strengths : [],
+                        weaknesses: Array.isArray(ml?.weaknesses) ? ml.weaknesses : [],
+                        recommendations: Array.isArray(ml?.recommendations) ? ml.recommendations : [],
+                    };
+
+                    const persisted = { success: true, analysis: deterministicAnalysis };
+                    let resumeDoc = await Resume.findOne({ userId: user._id });
+                    if (resumeDoc) {
+                        resumeDoc.parsedData = persisted;
+                        await resumeDoc.save();
+                    } else {
+                        // Safety: should not happen because we just created/updated it above
+                        await Resume.create({
+                            userId: user._id,
+                            fileUrl: cloudResponse.secure_url,
+                            parsedData: persisted,
+                        });
+                    }
+
+                    await ResumeAnalysis.create({
+                        userId: user._id,
+                        atsScore: deterministicAnalysis.atsScore,
+                        predictedRole: deterministicAnalysis.predictedRole,
+                        skills: deterministicAnalysis.skills,
+                        strengths: deterministicAnalysis.strengths,
+                        weaknesses: deterministicAnalysis.weaknesses,
+                        recommendations: deterministicAnalysis.recommendations,
+                        analyzedAt: new Date(),
+                    });
+
+                    logger.info(`ATS analysis persisted successfully for user ${user._id}`);
                 }
             } catch (error) {
                 logger.error(`ATS analysis failed for ${user.email}:`, error);
             }
+
         } else {
             user.profile.profilePhoto = cloudResponse.secure_url;
         }
@@ -464,7 +504,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
                 throw new ApiError(400, "Cannot demote the last admin");
             }
         }
-        user.role = normalized === "candidate" ? "Candidate" : normalized;
+        user.role = normalized === "candidate" ? "candidate" : normalized;
     }
 
     await user.save();

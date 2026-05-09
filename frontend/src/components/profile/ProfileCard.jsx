@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Mail, Phone, FileText, Edit3, MapPin } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
@@ -50,15 +51,14 @@ const ProfileCard = ({ user, setOpen }) => {
                         <div className="p-2 rounded-lg bg-white/5 text-cyan-400"><MapPin className="w-4 h-4" /></div>
                         {user?.profile?.location || 'Add location'}
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                        <div className="p-2 rounded-lg bg-white/5 text-amber-400"><FileText className="w-4 h-4" /></div>
-                        {user?.profile?.resume ? (
-                            <a href={user?.profile?.resume} target="_blank" rel="noreferrer" className="text-amber-400 hover:underline font-medium">
-                                View Resume
-                            </a>
-                        ) : (
-                            "No resume uploaded"
-                        )}
+                    <div className="pt-4">
+                        <Link 
+                            to="/profile/build-resume" 
+                            className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#00ff88]/20 to-[#00ff88]/10 hover:from-[#00ff88]/30 hover:to-[#00ff88]/20 border border-[#00ff88]/30 hover:border-[#00ff88]/50 text-accent font-medium backdrop-blur-md transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,136,0.2)] hover:-translate-y-0.5 group"
+                        >
+                            <FileText className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            Build Resume
+                        </Link>
                     </div>
                 </div>
 

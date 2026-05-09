@@ -7,8 +7,9 @@ export const useResumeAnalysis = () => {
     return useQuery({
         queryKey: ['resumeAnalysis'],
         queryFn: async () => {
-            const response = await apiClient.get('/api/resume/analysis');
+            const response = await apiClient.get('/api/ai/resume-analysis');
             return extractApiData(response);
+
         },
         staleTime: 5 * 60 * 1000, // 5 minutes
         retry: (failureCount, error) => {

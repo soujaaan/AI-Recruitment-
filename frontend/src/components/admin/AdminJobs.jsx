@@ -21,7 +21,7 @@ const AdminJobs = () => {
                 <div className="max-w-7xl mx-auto">
                     <SectionHeader
                         label="01 — Admin"
-                        title="Manage <span class='gradient-text'>Jobs</span>"
+                        title={<>Manage <span className="gradient-text">Jobs</span></>}
                         subtitle="Review, edit, and track all your job postings."
                     />
 
@@ -41,10 +41,15 @@ const AdminJobs = () => {
                                 onChange={(e) => setInput(e.target.value)}
                             />
                         </div>
-                        <Button onClick={() => navigate("/admin/jobs/create")} className="btn-neon whitespace-nowrap">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Post New Job
-                        </Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button onClick={() => navigate("/admin/questions")} variant="outline" className="whitespace-nowrap border-border">
+                                Question Bank
+                            </Button>
+                            <Button onClick={() => navigate("/admin/jobs/create")} className="btn-neon whitespace-nowrap">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Post New Job
+                            </Button>
+                        </div>
                     </motion.div>
 
                     <div className="mt-8">

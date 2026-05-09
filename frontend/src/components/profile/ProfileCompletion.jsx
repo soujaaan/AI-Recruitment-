@@ -7,7 +7,7 @@ const ProfileCompletion = ({ user }) => {
     const checklist = useMemo(() => [
         { label: "Basic Info Added", isComplete: !!(user?.fullname && user?.email) },
         { label: "Contact Info Added", isComplete: !!user?.phoneNumber },
-        { label: "Resume Uploaded", isComplete: !!user?.profile?.resume },
+        { label: "Resume Built", isComplete: !!user?.profile?.resume },
         { label: "Skills Added", isComplete: !!(user?.profile?.skills && user?.profile?.skills.length > 0) },
         { label: "Bio Added", isComplete: !!user?.profile?.bio },
     ], [user]);

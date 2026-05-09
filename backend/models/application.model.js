@@ -23,6 +23,27 @@ const applicationSchema = new mongoose.Schema({
     atsScore: {
         type: Number,
         default: 0
+    },
+    assessmentAttempt: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AssessmentAttempt'
+    },
+    assessmentScore: {
+        type: Number,
+        default: 0
+    },
+    aiRanking: {
+        type: String,
+        enum: ['Highly Recommended', 'Recommended', 'Average Fit', 'Weak Match'],
+        default: 'Average Fit'
+    },
+    aiEvaluationSummary: {
+        type: String,
+        default: ""
+    },
+    timeEfficiency: {
+        type: Number, // Percentage or seconds metric
+        default: 0
     }
 },{timestamps:true});
 

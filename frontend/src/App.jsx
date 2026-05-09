@@ -10,14 +10,18 @@ const VerifyOTP = lazy(() => import("./components/auth/VerifyOTP"));
 const Jobs = lazy(() => import("./components/Jobs"));
 const Browse = lazy(() => import("./components/Browse"));
 const Profile = lazy(() => import("./components/Profile"));
+const BuildResume = lazy(() => import("./pages/BuildResume"));
 const JobDescription = lazy(() => import("./components/JobDescription"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const Applications = lazy(() => import("./pages/candidate/ApplicationsPage"));
+const Assessment = lazy(() => import("./pages/candidate/Assessment"));
 const AdminJobs = lazy(() => import("./components/admin/AdminJobs"));
 const PostJob = lazy(() => import("./components/admin/PostJob"));
 const Applicants = lazy(() => import("./components/admin/Applicants"));
+const JobApplicants = lazy(() => import("./pages/admin/JobApplicants"));
 const Companies = lazy(() => import("./components/admin/Companies"));
 const CompanyCreate = lazy(() => import("./components/admin/CompanyCreate"));
+const Questions = lazy(() => import("./pages/admin/Questions"));
 const SystemAdminDashboard = lazy(() => import("./components/system-admin/SystemAdminDashboard"));
 
 const withSuspense = (element) => (
@@ -63,6 +67,10 @@ const appRouter = createBrowserRouter([
       {
         path: "/profile",
         element: withSuspense(<Profile />)
+      },
+      {
+        path: "/profile/build-resume",
+        element: withSuspense(<BuildResume />)
       }
     ]
   },
@@ -72,6 +80,10 @@ const appRouter = createBrowserRouter([
       {
         path: "/applications",
         element: withSuspense(<Applications />)
+      },
+      {
+        path: "/assessment/:jobId",
+        element: withSuspense(<Assessment />)
       }
     ]
   },
@@ -97,7 +109,7 @@ const appRouter = createBrowserRouter([
       },
       {
         path: "/admin/jobs/:id/applicants",
-        element: withSuspense(<Applicants />)
+        element: withSuspense(<JobApplicants />)
       },
       {
         path: "/admin/companies",
@@ -106,6 +118,10 @@ const appRouter = createBrowserRouter([
       {
         path: "/admin/companies/create",
         element: withSuspense(<CompanyCreate />)
+      },
+      {
+        path: "/admin/questions",
+        element: withSuspense(<Questions />)
       }
     ]
   },

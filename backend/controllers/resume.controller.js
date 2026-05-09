@@ -59,8 +59,14 @@ export const parseResume = asyncHandler(async (req, res) => {
         return sendSuccess(res, 200, resume.parsedData, "Resume analysis already computed");
     }
 
+    console.log("parseResume called for userId:", userId);
+
     const resumeText = await extractPdfText(resume.fileUrl);
+    console.log("Resume text extracted length:", resumeText?.length);
+
     const ml = await aiAnalyzeResume(resumeText);
+    console.log("ATS analysis received from Flask:", ml);
+
 
     const deterministicAnalysis = {
         atsScore: ml?.atsScore ?? 0,
@@ -81,6 +87,7 @@ export const parseResume = asyncHandler(async (req, res) => {
     await ResumeAnalysis.create({
         userId,
         atsScore: deterministicAnalysis.atsScore,
+
         predictedRole: deterministicAnalysis.predictedRole,
         skills: deterministicAnalysis.skills,
         strengths: deterministicAnalysis.strengths,
@@ -89,6 +96,9 @@ export const parseResume = asyncHandler(async (req, res) => {
         analyzedAt: new Date()
     });
 
+    console.log("ResumeAnalysis saved successfully for userId:", userId);
+
     return sendSuccess(res, 200, persisted, "Resume analyzed successfully (deterministic ML)");
+
 });
 

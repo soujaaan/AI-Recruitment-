@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import Navbar from './shared/Navbar'
 import HeroSection from './HeroSection'
-import DualAuthSection from './auth/DualAuthSection'
+//import DualAuthSection from './auth/DualAuthSection'
 import CategoryCarousel from './CategoryCarousel'
 import LatestJobs from './LatestJobs'
 import Footer from './shared/Footer'
@@ -26,8 +26,7 @@ const Home = () => {
     <div className="bg-[#0a0a0a] min-h-screen">
       <Navbar />
       <HeroSection />
-      <DualAuthSection />
-      <CategoryCarousel />
+     <CategoryCarousel />
       <LatestJobs />
       <Footer />
     </div>

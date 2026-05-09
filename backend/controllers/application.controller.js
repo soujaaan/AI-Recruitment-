@@ -131,6 +131,26 @@ export const getApplicants = asyncHandler(async (req, res) => {
     );
 });
 
+export const getJobApplicants = asyncHandler(async (req, res) => {
+    const jobId = req.params.jobId;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+        throw new ApiError(404, "Job not found");
+    }
+
+    if (!canManageApplication(job, req.user)) {
+        throw new ApiError(403, "You do not own this job");
+    }
+
+    const applications = await Application.find({ job: jobId })
+        .populate("applicant")
+        .populate("job")
+        .sort({ createdAt: -1 });
+
+    return res.status(200).json(applications);
+});
+
 export const updateStatus = asyncHandler(async (req, res) => {
     const applicationId = req.params.id;
     const { status } = req.body;

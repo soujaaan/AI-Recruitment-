@@ -47,20 +47,10 @@ const JobDescription = () => {
             navigate('/profile');
             return;
         }
-        try {
-            const result = await applyMutation.mutateAsync(id);
-            if (result.success) {
-                setIsApplied(true);
-                const updatedSingleJob = {
-                    ...singleJob,
-                    applications: [...(singleJob?.applications || []), { applicant: user?._id }]
-                };
-                dispatch(setSingleJob(updatedSingleJob));
-                toast.success(result.message);
-            }
-        } catch (error) {
-            toast.error(error.message || "Something went wrong");
-        }
+        
+        // Redirect to the assessment page
+        console.log("Navigating to assessment");
+        navigate(`/assessment/${id}`);
     };
 
     useEffect(() => {
@@ -84,8 +74,8 @@ const JobDescription = () => {
         fetchSingleJob();
     }, [id, dispatch, user?._id]);
 
-    const applyButtonText = isApplied ? 'Applied' : 'Apply Now';
-    const applyButtonDisabled = isApplied || applyMutation.isPending;
+    const applyButtonText = isApplied ? 'Applied' : 'Start Assessment';
+    const applyButtonDisabled = isApplied;
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -211,7 +201,7 @@ const JobDescription = () => {
                                                 : "w-full btn-neon"
                                             }
                                         >
-                                            {applyMutation.isPending ? 'Applying...' : applyButtonText}
+                                            {applyButtonText}
                                         </Button>
                                     </div>
 

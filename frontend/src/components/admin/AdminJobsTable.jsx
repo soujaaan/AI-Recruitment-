@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import EmptyState from '../common/EmptyState'
@@ -50,16 +51,17 @@ const AdminJobsTable = ({ filter = '' }) => {
                     const applicantsCount = job.applications?.length || 0;
 
                     return (
-                        <div
+                        <motion.div
                             key={job._id}
-                            className='group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/20 hover:bg-surface transition-all'
+                            whileHover={{ scale: 1.01 }}
+                            onClick={() => navigate('/admin/jobs/' + job._id + '/applicants')}
+                            className='group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/40 hover:shadow-[0_0_20px_rgba(0,255,136,0.15)] hover:bg-surface transition-all cursor-pointer duration-300'
                         >
                             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
 
                                 {/* LEFT SECTION */}
                                 <div
-                                    className='flex items-center gap-4 cursor-pointer flex-1'
-                                    onClick={() => navigate('/admin/jobs/' + job._id + '/applicants')}
+                                    className='flex items-center gap-4 flex-1'
                                 >
                                     <div className='w-12 h-12 rounded-xl bg-surface-elevated border border-border flex items-center justify-center shrink-0'>
                                         <Briefcase className='w-5 h-5 text-muted-foreground' />
@@ -175,7 +177,7 @@ const AdminJobsTable = ({ filter = '' }) => {
                                 </div>
 
                             </div> {/* ✅ FIX 2 */}
-                        </div>
+                        </motion.div>
                     );
                 })
             )}

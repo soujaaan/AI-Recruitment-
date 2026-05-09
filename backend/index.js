@@ -19,8 +19,10 @@ import companyRoute from "./routes/company.route.js";
 import adminRoute from "./routes/admin.route.js";
 import resumeRoute from "./routes/resume.route.js";
 import atsRoute from "./routes/ats.route.js";
+import assessmentRoute from "./routes/assessment.route.js";
 import authRoute from "./routes/auth.route.js";
 import aiRoutes from "./routes/ai.routes.js";
+import profileRoute from "./routes/profile.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
 
 import path from "path";
@@ -63,11 +65,14 @@ app.use("/api/auth", authRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);
+app.use("/api/applications", applicationRoute);
 app.use("/api/v1/company", companyRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/resume", resumeRoute);
 app.use("/api/ats", atsRoute);
+app.use("/api/v1/assessment", assessmentRoute);
 app.use("/api/ai", aiRoutes);
+app.use("/api/profile", profileRoute);
 
 // Serve uploads folder locally
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

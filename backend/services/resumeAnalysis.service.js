@@ -41,7 +41,10 @@ const extractPdfText = async (resumePathOrUrl) => {
 };
 
 const callFlaskAnalyze = async (resumeText) => {
-const url = `${getFlaskBaseUrl()}/analyze`;
+  const url = `${getFlaskBaseUrl()}/analyze`;
+
+  console.log("Calling Flask ATS:", url);
+  console.log("ResumeText length:", resumeText?.length);
 
   const resp = await fetch(url, {
     method: "POST",
@@ -49,17 +52,22 @@ const url = `${getFlaskBaseUrl()}/analyze`;
     body: JSON.stringify({ resume_text: resumeText }),
   });
 
+
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
+    console.error("Flask ATS non-OK:", resp.status, txt);
     throw new ApiError(500, `ML inference failed: ${resp.status} ${txt}`);
   }
 
+
   const data = await resp.json();
+  console.log("Flask ATS response:", data);
   if (data?.error) {
     throw new ApiError(500, `ML inference error: ${data.error}`);
   }
   return data;
 };
+
 
 export const aiAnalyzeResume = async (resumeText, opts = {}) => {
   // opts can include precomputed text; kept for future extensibility

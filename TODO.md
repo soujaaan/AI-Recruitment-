@@ -1,9 +1,15 @@
-# TODO - Final ATS Decontamination (deterministic-only)
+# TODO - Fix Flask ATS pipeline end-to-end
 
-- [ ] Step 1: Audit search confirm remaining ATS contamination points (ai.service.js, user.controller.js, etc.)
-- [ ] Step 2: Clean `backend/services/ai.service.js` to remove Groq/OpenAI resume parsing + ATS scoring + mock ATS
-- [ ] Step 3: Update `backend/controllers/user.controller.js` to remove resume upload/profile update ATS scoring; persist resume only
-- [ ] Step 4: Ensure ATS score inference happens only in Flask (`backend/ai/app.py` /analyze) via existing deterministic controller flow
-- [ ] Step 5: Re-run repo-wide search to verify zero remaining ATS generators/prompts
-- [ ] Step 6: Final validation: only one ATS origin path and no mock score remnants
+- [x] Implement automatic ATS analysis immediately after resume upload (persist Resume.parsedData + ResumeAnalysis)
+
+- [x] Add robust debugging logs in Flask ATS service (startup, model load, request payload length, transform/predict stages)
+
+- [x] Add robust debugging logs + better validation in Node resume.controller.js parseResume endpoint
+
+- [x] Fix frontend endpoint mismatch to use `GET /api/ai/resume-analysis`
+
+
+- [ ] Add optional frontend fallback: if GET returns 404, call `POST /api/resume/parse` then refetch
+
+- [ ] Run minimal end-to-end test: upload resume -> verify Flask /analyze called -> verify Mongo persisted -> verify Profile shows analysis
 

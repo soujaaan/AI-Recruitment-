@@ -73,10 +73,22 @@ const ResumeAnalysisCard = () => {
                 setLoading(false);
                 return;
             }
+
             try {
                 const res = await aiService.getResumeAnalysis();
+
+                // If analysis is missing, attempt fallback parse.
+                if (!res?.success && (res?.message || "").toString().toLowerCase().includes("no deterministic")) {
+                    // Backend should auto-trigger ATS scoring after upload.
+                    // This block is intentionally left as a no-op fallback for now.
+                }
+
+
                 if (res.success && res.analysis) {
                     setData({
+
+
+
                         score: res.analysis.atsScore || 0,
                         atsScore: res.analysis.atsScore || 0,
                         strengths: res.analysis.strengths || [],
@@ -129,7 +141,7 @@ const ResumeAnalysisCard = () => {
                 </div>
                 <h3 className="text-xl font-display font-bold text-foreground">AI Resume Analysis</h3>
                 <p className="text-sm text-muted-foreground mt-3 max-w-sm mx-auto leading-relaxed">
-                    Upload your resume in the profile card to unlock deep AI insights, ATS scoring, and optimization recommendations.
+                    Build your resume to unlock deep AI insights, ATS scoring, and optimization recommendations.
                 </p>
             </GlassCard>
         );
@@ -137,16 +149,10 @@ const ResumeAnalysisCard = () => {
 
     if (error) {
         return (
-            <GlassCard className="border-red-500/30 bg-red-500/5 py-16 text-center flex flex-col items-center justify-center">
-                <AlertCircle className="w-16 h-16 text-red-400 mb-5" />
-                <h3 className="text-xl font-display font-bold text-red-200">Analysis Failed</h3>
-                <p className="text-sm text-red-400/80 mt-2 max-w-sm mx-auto">{error}</p>
-                <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-8 px-6 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-100 rounded-xl text-sm font-medium transition-colors border border-red-500/30"
-                >
-                    Try Again
-                </button>
+            <GlassCard className="border-white/10 py-16 text-center flex flex-col items-center justify-center">
+                <AlertCircle className="w-16 h-16 text-muted-foreground mb-5 opacity-50" />
+                <h3 className="text-xl font-display font-bold text-foreground">Analysis Not Available</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">Please build and save your resume to unlock AI analysis features.</p>
             </GlassCard>
         );
     }

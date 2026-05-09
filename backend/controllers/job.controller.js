@@ -61,13 +61,28 @@ export const postJob = asyncHandler(async (req, res) => {
 
 export const getAllJobs = asyncHandler(async (req, res) => {
     const { page, limit, skip } = getPagination(req.query);
-    const search = String(req.query.search || req.query.keyword || "").trim();
+    const {
+    search = "",
+    keyword = "",
+    location,
+    jobType
+} = req.query;
 
-    if (search && search.length < 3) {
-        throw new ApiError(400, "Search query must be at least 3 characters");
-    }
+const searchTerm = String(search || keyword).trim();
 
-    const query = search ? { $text: { $search: search } } : {};
+const query = {};
+
+if (searchTerm) {
+    query.$text = { $search: searchTerm };
+}
+
+if (location && location !== "All") {
+    query.location = String(location).trim();
+}
+
+if (jobType && jobType !== "All") {
+    query.jobType = String(jobType).trim();
+}
 
 const totalJobs = await Job.countDocuments(query);
     const jobsQuery = Job.find(
