@@ -9,7 +9,6 @@ import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
-import { corsOptions } from "./config/cors.js";
 import connectDB from "./utils/db.js";
 import { logger } from "./utils/logger.js";
 import userRoute from "./routes/user.route.js";
@@ -43,7 +42,17 @@ if (env.nodeEnv === "production") {
 
 // Security middleware
 app.use(helmet());
-app.use(cors(corsOptions));
+app.use(
+    cors({
+        origin: [
+            "http://localhost:5173",
+            "https://ai-recruitment-seven.vercel.app",
+        ],
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
 app.use(
     rateLimit({
         windowMs: env.rateLimitWindowMs,
