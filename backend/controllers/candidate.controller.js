@@ -13,24 +13,24 @@ export const getCandidateProfile = asyncHandler(async (req, res) => {
     const recruiterId = req.user?.id || req.id;
 
     const recruiterJobs = await Job.find({
-        $or: [{ created_by: recruiterId }, { recruiterId }],
+        created_by: recruiterId,
     }).select("_id");
 
     const recruiterJobIds = new Set(recruiterJobs.map((job) => job._id.toString()));
 
     const candidateApplications = await Application.find({
-        $or: [{ applicant: candidateId }, { candidateId }],
-    }).select("job jobId");
+        candidateId,
+    }).select("jobId");
 
     const hasApplication = candidateApplications.some((app) =>
-        recruiterJobIds.has(String(app.jobId || app.job))
+        recruiterJobIds.has(String(app.jobId))
     );
 
     if (!hasApplication && req.user?.role !== "admin") {
         throw new ApiError(403, "Unauthorized recruiter access");
     }
 
-    const applications = await Application.find({ applicant: candidateId }).populate("job");
+    const applications = await Application.find({ candidateId }).populate("job");
 
     const user = await User.findById(candidateId).select("-password");
     if (!user) {

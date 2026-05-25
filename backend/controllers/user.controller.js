@@ -20,18 +20,39 @@ import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { normalizeRole, isValidRole } from "../utils/role.utils.js";
 import { logger } from "../utils/logger.js";
 
-const buildSafeUser = (user) => ({
-    _id: user._id,
-    fullname: user.fullname,
-    email: user.email,
-    phoneNumber: user.phoneNumber,
-    role: normalizeRole(user.role),
-    profile: user.profile,
-    isActive: user.isActive,
-    lastLoginAt: user.lastLoginAt,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-});
+const buildSafeUser = (user) => {
+    const profile = (user?.profile && typeof user.profile === "object")
+        ? (user.profile.toObject ? user.profile.toObject() : user.profile)
+        : {};
+        
+    const skills = profile.skills || [];
+    const resume = profile.resume || "";
+    const resumeUrl = profile.resumeUrl || profile.resumePdfUrl || resume || "";
+    const resumeOriginalName = profile.resumeOriginalName || "";
+
+    return {
+        _id: user?._id,
+        fullname: user?.fullname,
+        email: user?.email,
+        phoneNumber: user?.phoneNumber,
+        role: normalizeRole(user?.role),
+        profile: {
+            ...profile,
+            skills,
+            resume,
+            resumeUrl,
+            resumeOriginalName,
+        },
+        skills,
+        resume,
+        resumeUrl,
+        resumeOriginalName,
+        isActive: user?.isActive,
+        lastLoginAt: user?.lastLoginAt,
+        createdAt: user?.createdAt,
+        updatedAt: user?.updatedAt,
+    };
+};
 
 const buildCookieOptions = () => ({
     maxAge: env.cookieMaxAgeMs,
@@ -175,7 +196,7 @@ export const login = asyncHandler(async (req, res) => {
     const { email, password, role } = req.body;
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    const user = await User.findOne({ email: normalizedEmail }).select("+password").populate("profile");
     if (!user) {
         throw new ApiError(401, "Incorrect email or password");
     }
@@ -244,7 +265,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
     console.log("Update Profile - req.file:", req.file);
     
     const userId = req.user?.id || req.id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("profile");
 
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -430,11 +451,13 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("profile");
 
     if (!user) {
         throw new ApiError(404, "User not found");
     }
+
+    console.log("[getCurrentUser] User document:", user);
 
     return sendSuccess(res, 200, { user: buildSafeUser(user) }, "User fetched successfully", { user: buildSafeUser(user) });
 });

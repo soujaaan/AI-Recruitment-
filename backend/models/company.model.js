@@ -36,6 +36,4 @@ companySchema.pre("save", function (next) {
     next();
 });
 
-companySchema.index({ recruiterId: 1 });
-
 export const Company = mongoose.model("Company", companySchema);

@@ -13,6 +13,7 @@ import RecentActivity from './profile/RecentActivity';
 const Profile = () => {
     const [open, setOpen] = useState(false);
     const { user } = useSelector(store => store.auth);
+    console.log("[Profile Page] user:", user);
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen relative overflow-hidden">

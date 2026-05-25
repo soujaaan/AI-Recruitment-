@@ -138,7 +138,4 @@ candidateProfileSchema.pre("save", function (next) {
     next();
 });
 
-candidateProfileSchema.index({ skills: 1 });
-candidateProfileSchema.index({ aiScore: -1 });
-
 export const CandidateProfile = mongoose.model("CandidateProfile", candidateProfileSchema);

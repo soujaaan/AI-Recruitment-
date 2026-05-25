@@ -127,6 +127,7 @@ const safeProfileTransform = function (doc, ret) {
             bio: "",
             skills: [],
             resume: "",
+            resumeUrl: "",
             resumeOriginalName: "",
             company: ret.company || null,
             companyId: ret.companyId || null,
@@ -145,6 +146,8 @@ const safeProfileTransform = function (doc, ret) {
         ret.profile.bio = ret.profile.bio || ret.profile.summary || "";
         ret.profile.skills = ret.profile.skills || [];
         ret.profile.resume = ret.profile.resume || ret.profile.resumePdfUrl || "";
+        ret.profile.resumeUrl = ret.profile.resumeUrl || ret.profile.resumePdfUrl || ret.profile.resume || "";
+        ret.profile.resumeOriginalName = ret.profile.resumeOriginalName || "";
         ret.profile.profilePhoto = ret.profile.profilePhoto || ret.profilePhoto || "";
         ret.profile.company = ret.profile.company || ret.company || null;
         ret.profile.companyId = ret.profile.companyId || ret.companyId || null;

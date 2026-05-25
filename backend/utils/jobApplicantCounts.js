@@ -1,19 +1,19 @@
 import mongoose from "mongoose";
 import { Application } from "../models/application.model.js";
 
-/** Jobs owned by a recruiter (supports legacy created_by and canonical recruiterId). */
+/** Jobs owned by a recruiter (uses the canonical created_by schema field strictly). */
 export const buildRecruiterJobsQuery = (user) => {
     if (user?.role === "admin") return {};
     const userId = user?.id || user?._id;
     return {
-        $or: [{ created_by: userId }, { recruiterId: userId }],
+        created_by: userId,
     };
 };
 
 const toObjectId = (id) =>
     id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(id);
 
-/** Match applications for one or more jobs (job and jobId are kept in sync). */
+/** Match applications for one or more jobs using the canonical jobId field. */
 export const jobApplicationMatch = (jobIds) => {
     const ids = (Array.isArray(jobIds) ? jobIds : [jobIds])
         .filter(Boolean)
@@ -21,17 +21,12 @@ export const jobApplicationMatch = (jobIds) => {
 
     if (!ids.length) return { _id: null };
 
-    // Scalar equality for a single job — avoids CastError when populate("job")
-    // runs with mongoose sanitizeFilter enabled (see db.js).
     if (ids.length === 1) {
-        const id = ids[0];
-        return {
-            $or: [{ job: id }, { jobId: id }],
-        };
+        return { jobId: ids[0] };
     }
 
     return {
-        $or: [{ job: { $in: ids } }, { jobId: { $in: ids } }],
+        jobId: { $in: ids },
     };
 };
 

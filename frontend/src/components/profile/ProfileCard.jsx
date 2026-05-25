@@ -62,18 +62,32 @@ const ProfileCard = ({ user, setOpen }) => {
                     </div>
                 </div>
 
-                {user?.profile?.skills?.length > 0 && (
-                    <div className="mt-6 flex flex-wrap justify-center gap-2">
-                        {user.profile.skills.slice(0, 5).map((skill, index) => (
-                            <span key={index} className="px-2.5 py-1 text-xs rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-accent hover:border-accent/50 transition-colors cursor-default">
+                {/* REQUIRED SKILLS RENDERING */}
+                {(user?.skills?.length > 0 || user?.profile?.skills?.length > 0) && (
+                    <div className="mt-6 flex flex-wrap justify-center gap-2 skills-wrapper">
+                        {(user?.skills || user?.profile?.skills || []).map((skill, idx) => (
+                            <span 
+                                key={idx} 
+                                className="px-2.5 py-1 text-xs rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:text-accent hover:border-accent/50 transition-colors cursor-default"
+                            >
                                 {skill}
                             </span>
                         ))}
-                        {user.profile.skills.length > 5 && (
-                            <span className="px-2.5 py-1 text-xs rounded-full bg-white/5 border border-white/10 text-muted-foreground">
-                                +{user.profile.skills.length - 5}
-                            </span>
-                        )}
+                    </div>
+                )}
+
+                {/* REQUIRED RESUME RENDERING */}
+                {(user?.resumeUrl || user?.profile?.resumeUrl || user?.resume || user?.profile?.resume) && (
+                    <div className="mt-4 text-center">
+                        <a
+                            href={user?.resumeUrl || user?.profile?.resumeUrl || user?.resume || user?.profile?.resume}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline hover:scale-105 transition-all"
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            View Resume
+                        </a>
                     </div>
                 )}
 
