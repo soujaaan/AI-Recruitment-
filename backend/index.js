@@ -42,17 +42,12 @@ if (env.nodeEnv === "production") {
 
 // Security middleware
 app.use(helmet());
-app.use(
-    cors({
-        origin: [
-            "http://localhost:5173",
-            "https://ai-recruitment-seven.vercel.app",
-        ],
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
+app.use(cors({
+  origin: [
+    "https://ai-recruitment-seven.vercel.app"
+  ],
+  credentials: true
+}));
 app.use(
     rateLimit({
         windowMs: env.rateLimitWindowMs,

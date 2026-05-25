@@ -55,10 +55,10 @@ const buildSafeUser = (user) => {
 };
 
 const buildCookieOptions = () => ({
-    maxAge: env.cookieMaxAgeMs,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    sameSite: env.nodeEnv === "production" ? "none" : "lax",
-    secure: env.nodeEnv === "production",
+    sameSite: "none",
+    secure: true,
     path: "/",
 });
 
@@ -239,7 +239,12 @@ export const login = asyncHandler(async (req, res) => {
 
     const safeUser = buildSafeUser(user);
 
-    res.cookie("token", token, buildCookieOptions());
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     logger.info(`User logged in: ${user.email} (${normalizedUserRole})`);
 

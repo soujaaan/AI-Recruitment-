@@ -5,12 +5,6 @@ import { User } from "../models/user.model.js";
 import { normalizeRole } from "../utils/role.utils.js";
 
 const getTokenFromRequest = (req) => {
-    const authorizationHeader = req.headers.authorization;
-
-    if (authorizationHeader && authorizationHeader.startsWith("Bearer ")) {
-        return authorizationHeader.slice(7);
-    }
-
     return req.cookies?.token || null;
 };
 

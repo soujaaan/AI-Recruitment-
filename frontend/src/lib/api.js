@@ -1,13 +1,11 @@
 import axios from "axios";
-import { API_BASE_URL } from "@/utils/constant";
 
-export const apiClient = axios.create({
-    baseURL: API_BASE_URL,
-    withCredentials: true,
-    headers: {
-        "Content-Type": "application/json",
-    },
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
 });
+
+export const apiClient = api;
 
 // Cookie-based auth (canonical strategy).
 // Backend reads req.cookies.token, so we MUST NOT attach Authorization headers from localStorage.
