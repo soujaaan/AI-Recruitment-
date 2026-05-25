@@ -161,12 +161,7 @@ const Signup = () => {
                                     name="fullname"
                                     value={input.fullname}
                                     onChange={changeEventHandler}
-<<<<<<< HEAD
-                                    placeholder="Abhishek Banerjee"
-                                    className="bg-surface border-border focus:border-accent focus:ring-accent/20"
-=======
                                     placeholder="John Doe"
->>>>>>> a2a1630462db9c21ec94cc9d951bf008b1c94111
                                     required
                                     className="
                                         h-12

@@ -15,13 +15,10 @@ const AIResumeWorkspace = () => {
     }, [dispatch]);
 
     // Determine if profile is empty
-    const hasProfileData = profile && (
-        profile?.summary || 
-        (profile?.skills && profile.skills.length > 0) || 
-        (profile?.experience && profile.experience.length > 0) ||
-        (profile?.projects && profile.projects.length > 0) ||
-        (profile?.education && (profile.education?.graduation?.college || profile.education?.postGraduation?.college))
-    );
+    const hasProfileData = !!profile;
+    
+    console.log("Fetched Resume Data:", profile);
+    console.log("Workspace Condition (hasProfileData):", hasProfileData);
 
     if (loading && !profile) {
         return (

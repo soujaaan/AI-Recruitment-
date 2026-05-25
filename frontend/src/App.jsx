@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import LoadingScreen from "./components/common/LoadingScreen";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import GlobalChatListener from "./components/shared/GlobalChatListener";
 
 const Home = lazy(() => import("./components/Home"));
 const Login = lazy(() => import("./components/auth/Login"));
@@ -14,15 +15,15 @@ const BuildResume = lazy(() => import("./pages/BuildResume"));
 const JobDescription = lazy(() => import("./components/JobDescription"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const Applications = lazy(() => import("./pages/candidate/ApplicationsPage"));
-const Assessment = lazy(() => import("./pages/candidate/Assessment"));
+const Messages = lazy(() => import("./pages/messages/MessagesPage"));
 const AdminJobs = lazy(() => import("./components/admin/AdminJobs"));
 const PostJob = lazy(() => import("./components/admin/PostJob"));
 const Applicants = lazy(() => import("./components/admin/Applicants"));
 const JobApplicants = lazy(() => import("./pages/admin/JobApplicants"));
 const Companies = lazy(() => import("./components/admin/Companies"));
 const CompanyCreate = lazy(() => import("./components/admin/CompanyCreate"));
-const Questions = lazy(() => import("./pages/admin/Questions"));
 const SystemAdminDashboard = lazy(() => import("./components/system-admin/SystemAdminDashboard"));
+const CandidateProfile = lazy(() => import("./pages/recruiter/CandidateProfile"));
 
 const withSuspense = (element) => (
   <Suspense fallback={<LoadingScreen label="Loading page..." />}>{element}</Suspense>
@@ -80,16 +81,16 @@ const appRouter = createBrowserRouter([
       {
         path: "/applications",
         element: withSuspense(<Applications />)
-      },
-      {
-        path: "/assessment/:jobId",
-        element: withSuspense(<Assessment />)
       }
     ]
   },
-  {
-    element: <ProtectedRoute allowedRoles={["recruiter", "admin"]} />,
+      {
+    element: <ProtectedRoute allowedRoles={["recruiter", "admin", "candidate"]} />,
     children: [
+      {
+        path: "/messages",
+        element: withSuspense(<Messages />)
+      },
       {
         path: "/dashboard",
         element: withSuspense(<Dashboard />)
@@ -120,8 +121,8 @@ const appRouter = createBrowserRouter([
         element: withSuspense(<CompanyCreate />)
       },
       {
-        path: "/admin/questions",
-        element: withSuspense(<Questions />)
+        path: "/candidate/:candidateId",
+        element: withSuspense(<CandidateProfile />)
       }
     ]
   },
@@ -154,6 +155,7 @@ function App() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#00ff88]/[0.02] blur-[120px] rounded-full"></div>
       </div>
 
+      <GlobalChatListener />
       <RouterProvider router={appRouter} />
     </div>
   )

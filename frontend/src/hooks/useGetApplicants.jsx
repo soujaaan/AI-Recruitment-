@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { applicationService } from "@/services/application.service";
 import { setAllApplicants, setApplicationPagination } from "@/redux/applicationSlice";
+import { isValidMongoId, toMongoIdString } from "@/utils/mongoId";
 
 const useGetApplicants = (jobId, params = {}) => {
     const dispatch = useDispatch();
+    const normalizedJobId = toMongoIdString(jobId);
     const query = useQuery({
-        queryKey: ["applicants", jobId, params],
-        queryFn: async () => applicationService.getApplicants(jobId, params),
+        queryKey: ["applicants", normalizedJobId, params],
+        queryFn: async () => applicationService.getApplicants(normalizedJobId, params),
         select: (response) => response?.data ?? response,
-        enabled: !!jobId,
+        enabled: isValidMongoId(normalizedJobId),
     });
 
     useEffect(() => {
@@ -19,7 +21,15 @@ const useGetApplicants = (jobId, params = {}) => {
             return;
         }
 
-        dispatch(setAllApplicants(data?.applicants || data?.data?.applicants || []));
+        dispatch(
+            setAllApplicants(
+                data?.applications ||
+                    data?.data?.applications ||
+                    data?.applicants ||
+                    data?.data?.applicants ||
+                    []
+            )
+        );
         dispatch(setApplicationPagination(data?.pagination || data?.data?.pagination || null));
     }, [dispatch, query.data]);
 

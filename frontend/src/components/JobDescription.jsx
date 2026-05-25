@@ -11,6 +11,7 @@ import { motion } from 'framer-motion'
 import { MapPin, Briefcase, Clock, DollarSign, Building2, ArrowLeft, AlertCircle, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApplyJobMutation } from '@/hooks/useJobMutations'
+import JobMatchCard from '@/components/recruitment/JobMatchCard'
 
 const JobDescription = () => {
     const { id } = useParams();
@@ -21,6 +22,7 @@ const JobDescription = () => {
     const applyMutation = useApplyJobMutation();
 
     const [isApplied, setIsApplied] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const profileComplete = useMemo(() => {
         if (!user) return false;
@@ -37,6 +39,8 @@ const JobDescription = () => {
     }, [user]);
 
     const applyJobHandler = async () => {
+        if (loading) return;
+        
         if (!user) {
             toast.error("Please login to apply");
             navigate('/login');
@@ -48,9 +52,20 @@ const JobDescription = () => {
             return;
         }
         
-        // Redirect to the assessment page
-        console.log("Navigating to assessment");
-        navigate(`/assessment/${id}`);
+        try {
+            setLoading(true);
+            // Only apply if they haven't already
+            if (!isApplied) {
+                await applyMutation.mutateAsync(id);
+                setIsApplied(true);
+                toast.success("Application submitted successfully!");
+            }
+            navigate('/applications');
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Application failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -60,11 +75,24 @@ const JobDescription = () => {
                 if (res.data.success) {
                     const job = res.data.job;
                     dispatch(setSingleJob(job));
-                    if (user?._id && job.applications) {
-                        setIsApplied(job.applications.some(application =>
-                            String(application.applicant) === String(user._id) ||
-                            String(application.applicant?._id) === String(user._id)
-                        ));
+                    if (user?._id) {
+                        try {
+                            const appsRes = await apiClient.get("/api/v1/application/get", {
+                                params: { limit: 500 },
+                            });
+                            const applied =
+                                appsRes.data?.data?.application ||
+                                appsRes.data?.application ||
+                                [];
+                            setIsApplied(
+                                applied.some(
+                                    (a) =>
+                                        String(a.job?._id || a.jobId || a.job) === String(id)
+                                )
+                            );
+                        } catch {
+                            setIsApplied(false);
+                        }
                     }
                 }
             } catch (error) {
@@ -74,8 +102,8 @@ const JobDescription = () => {
         fetchSingleJob();
     }, [id, dispatch, user?._id]);
 
-    const applyButtonText = isApplied ? 'Applied' : 'Start Assessment';
-    const applyButtonDisabled = isApplied;
+    const applyButtonText = loading ? 'Applying...' : (isApplied ? 'Applied' : 'Apply Now');
+    const applyButtonDisabled = loading; // Disable button while request is active
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -141,7 +169,7 @@ const JobDescription = () => {
                                             <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Applicants</p>
                                             <p className="font-display font-bold text-lg text-foreground flex items-center gap-2">
                                                 <span className="w-4 h-4 rounded-full bg-accent/20 flex items-center justify-center text-[10px] text-accent font-bold">#</span>
-                                                {singleJob?.applications?.length || 0}
+                                                {singleJob?.applicantCount ?? 0}
                                             </p>
                                         </div>
                                     </div>
@@ -153,7 +181,11 @@ const JobDescription = () => {
                                         </div>
                                         <div>
                                             <h3 className="font-display font-bold text-xl text-foreground mb-3">Requirements</h3>
-                                            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{singleJob?.requirements}</p>
+                                            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                                                {Array.isArray(singleJob?.requirements)
+                                                    ? singleJob.requirements.join(', ')
+                                                    : singleJob?.requirements}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -204,6 +236,10 @@ const JobDescription = () => {
                                             {applyButtonText}
                                         </Button>
                                     </div>
+
+                                    {user?.role === 'candidate' && (
+                                        <JobMatchCard jobId={id} userRole={user?.role} />
+                                    )}
 
                                     {/* Company Card */}
                                     <div className="rounded-2xl border border-border bg-surface/80 backdrop-blur-md p-6">

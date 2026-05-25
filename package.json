@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "zustand": "^5.0.13"
   }
 }

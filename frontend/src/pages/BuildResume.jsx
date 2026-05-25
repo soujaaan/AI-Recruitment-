@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, User, FileText, Code, Briefcase, FolderGit2, GraduationCap, Save, Plus, Trash2, Mail, Phone, MapPin, Link as LinkIcon, Github, Globe, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, User, FileText, Code, Briefcase, FolderGit2, GraduationCap, Save, Plus, Trash2, Loader2, Download } from 'lucide-react';
+import ResumePreviewDocument from '../components/resume/ResumePreviewDocument';
+import { downloadResumePdf } from '../utils/downloadResumePdf';
 import SkillMultiSelect from '../components/SkillMultiSelect';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile, saveProfile, resetSaveStatus } from '../redux/resumeSlice';
@@ -105,166 +107,36 @@ const ResumeSectionCard = ({ title, subtitle, icon, isOpen, onToggle, children, 
     </GlassCard>
 );
 
-const LivePreview = ({ data }) => {
+const RESUME_EXPORT_ID = 'resume-preview-export';
+
+const LivePreview = ({ data, onDownload, downloading }) => {
     if (!data) return null;
     return (
         <div className="sticky top-8">
             <GlassCard className="h-[800px] flex flex-col p-8 relative overflow-hidden bg-white/5">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-                
-                <div className="flex justify-between items-center mb-6 z-10">
+
+                <div className="flex justify-between items-center mb-4 z-10 gap-2">
                     <h3 className="text-xl font-display font-bold text-foreground flex items-center gap-2">
                         <span className="w-2 h-6 bg-[#00ff88] rounded-full"></span>
                         Live Preview
                     </h3>
-                    <span className="text-xs font-medium px-2 py-1 bg-white/10 rounded-md text-muted-foreground">A4 Ratio</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium px-2 py-1 bg-white/10 rounded-md text-muted-foreground">A4</span>
+                        <button
+                            type="button"
+                            onClick={onDownload}
+                            disabled={downloading}
+                            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 hover:bg-[#00ff88]/30 transition-colors disabled:opacity-50"
+                        >
+                            {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                            Download PDF
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 bg-white text-black rounded-xl border border-white/10 shadow-inner relative overflow-y-auto custom-scrollbar group font-sans text-sm">
-                    <div className="p-8 space-y-6">
-                        {/* Header */}
-                        <div className="text-center border-b border-gray-300 pb-4">
-                            <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">{data?.personalInfo?.fullName || 'YOUR NAME'}</h1>
-                            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-600">
-                                {data?.personalInfo?.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {data.personalInfo.email}</span>}
-                                {data?.personalInfo?.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {data.personalInfo.phone}</span>}
-                                {data?.personalInfo?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {data.personalInfo.location}</span>}
-                                {data?.personalInfo?.linkedin && <span className="flex items-center gap-1"><LinkIcon className="w-3 h-3" /> {data.personalInfo.linkedin}</span>}
-                                {data?.personalInfo?.github && <span className="flex items-center gap-1"><Github className="w-3 h-3" /> {data.personalInfo.github}</span>}
-                                {data?.personalInfo?.portfolio && <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> {data.personalInfo.portfolio}</span>}
-                            </div>
-                        </div>
-
-                        {/* Summary */}
-                        {data?.summary && (
-                            <div>
-                                <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2 pb-1 text-gray-800">Professional Summary</h2>
-                                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{data.summary}</p>
-                            </div>
-                        )}
-
-                        {/* Skills */}
-                        {data?.skills?.length > 0 && (
-                            <div>
-                                <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-2 pb-1 text-gray-800">Tech Stack</h2>
-                                <p className="text-xs text-gray-700 leading-relaxed">
-                                    {(data.skills || []).join(' • ')}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Experience */}
-                        {data?.experience?.length > 0 && (
-                            <div>
-                                <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-3 pb-1 text-gray-800">Experience</h2>
-                                <div className="space-y-4">
-                                    {(data.experience || []).map((exp, i) => (
-                                        <div key={i}>
-                                            <div className="flex justify-between items-baseline mb-1">
-                                                <h3 className="text-xs font-bold text-gray-900">{exp?.title || 'Title'} <span className="font-normal text-gray-600">at {exp?.company || 'Company'}</span></h3>
-                                                <span className="text-[10px] font-semibold text-gray-500 whitespace-nowrap ml-2">
-                                                    {exp?.startDate || 'Start'} – {exp?.current ? 'Present' : (exp?.endDate || 'End')}
-                                                </span>
-                                            </div>
-                                            {exp?.location && <div className="text-[10px] italic text-gray-500 mb-1">{exp.location}</div>}
-                                            {exp?.responsibilities && (
-                                                <div className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-gray-200 mt-1">
-                                                    {exp.responsibilities}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Projects */}
-                        {data?.projects?.length > 0 && (
-                            <div>
-                                <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-3 pb-1 text-gray-800">Projects</h2>
-                                <div className="space-y-3">
-                                    {(data.projects || []).map((proj, i) => (
-                                        <div key={i}>
-                                            <div className="flex justify-between items-baseline mb-1">
-                                                <h3 className="text-xs font-bold text-gray-900">
-                                                    {proj?.title || 'Project'} 
-                                                    {proj?.github && <span className="font-normal text-blue-600 ml-1">({proj.github})</span>}
-                                                </h3>
-                                                {proj?.duration && <span className="text-[10px] font-semibold text-gray-500 whitespace-nowrap ml-2">{proj.duration}</span>}
-                                            </div>
-                                            {proj?.skills?.length > 0 && <div className="text-[10px] italic text-gray-500 mb-1">Stack: {proj.skills.join(', ')}</div>}
-                                            {proj?.description && (
-                                                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap mt-1">
-                                                    {proj.description}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Education */}
-                        {(data?.education?.graduation?.college || data?.education?.postGraduation?.college || data?.education?.higherSecondary?.school || data?.education?.secondary?.school) && (
-                            <div>
-                                <h2 className="text-sm font-bold uppercase border-b border-gray-300 mb-3 pb-1 text-gray-800">Education</h2>
-                                <div className="space-y-2">
-                                    {/* PG */}
-                                    {data?.education?.postGraduation?.college && (
-                                        <div className="flex justify-between items-baseline">
-                                            <div>
-                                                <h3 className="text-xs font-bold text-gray-900">{data.education.postGraduation.degree} in {data.education.postGraduation.specialization}</h3>
-                                                <div className="text-[10px] text-gray-600">{data.education.postGraduation.college}, {data.education.postGraduation.university}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] font-semibold text-gray-500 block">{data.education.postGraduation.startYear} - {data.education.postGraduation.endYear}</span>
-                                                {data.education.postGraduation.cgpa && <span className="text-[10px] text-gray-600 font-medium">Score: {data.education.postGraduation.cgpa}</span>}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* Graduation */}
-                                    {data?.education?.graduation?.college && (
-                                        <div className="flex justify-between items-baseline">
-                                            <div>
-                                                <h3 className="text-xs font-bold text-gray-900">{data.education.graduation.degree} in {data.education.graduation.specialization}</h3>
-                                                <div className="text-[10px] text-gray-600">{data.education.graduation.college}, {data.education.graduation.university}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] font-semibold text-gray-500 block">{data.education.graduation.startYear} - {data.education.graduation.endYear}</span>
-                                                {data.education.graduation.cgpa && <span className="text-[10px] text-gray-600 font-medium">Score: {data.education.graduation.cgpa}</span>}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* 12th */}
-                                    {data?.education?.higherSecondary?.school && (
-                                        <div className="flex justify-between items-baseline">
-                                            <div>
-                                                <h3 className="text-xs font-bold text-gray-900">Higher Secondary ({data.education.higherSecondary.board})</h3>
-                                                <div className="text-[10px] text-gray-600">{data.education.higherSecondary.school} - {data.education.higherSecondary.stream}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] font-semibold text-gray-500 block">Class of {data.education.higherSecondary.passingYear}</span>
-                                                {data.education.higherSecondary.score && <span className="text-[10px] text-gray-600 font-medium">Score: {data.education.higherSecondary.score}</span>}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {/* 10th */}
-                                    {data?.education?.secondary?.school && (
-                                        <div className="flex justify-between items-baseline">
-                                            <div>
-                                                <h3 className="text-xs font-bold text-gray-900">Secondary ({data.education.secondary.board})</h3>
-                                                <div className="text-[10px] text-gray-600">{data.education.secondary.school}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] font-semibold text-gray-500 block">Class of {data.education.secondary.passingYear}</span>
-                                                {data.education.secondary.score && <span className="text-[10px] text-gray-600 font-medium">Score: {data.education.secondary.score}</span>}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                <div className="flex-1 rounded-xl border border-white/10 shadow-inner relative overflow-y-auto custom-scrollbar bg-white">
+                    <ResumePreviewDocument data={data} exportId={RESUME_EXPORT_ID} />
                 </div>
             </GlassCard>
         </div>
@@ -273,9 +145,27 @@ const LivePreview = ({ data }) => {
 
 const BuildResume = () => {
     const [openSection, setOpenSection] = useState('personal');
+    const [downloadingPdf, setDownloadingPdf] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { profile, loading, saveLoading, saveSuccess } = useSelector(state => state.resume || {});
+
+    const handleDownloadPdf = async () => {
+        const el = document.getElementById(RESUME_EXPORT_ID);
+        if (!el) {
+            toast.error('Resume preview not ready');
+            return;
+        }
+        setDownloadingPdf(true);
+        try {
+            await downloadResumePdf(el, formData?.personalInfo?.fullName);
+            toast.success('Resume PDF downloaded');
+        } catch (err) {
+            toast.error(err?.message || 'Failed to generate PDF');
+        } finally {
+            setDownloadingPdf(false);
+        }
+    };
 
     // Safe Initialization
     const [formData, setFormData] = useState({
@@ -296,30 +186,38 @@ const BuildResume = () => {
         dispatch(fetchProfile());
     }, [dispatch]);
 
+    // Hydrate form from Redux profile — only runs once when profile first loads
     useEffect(() => {
-        if (profile && Object.keys(profile).length > 0) {
-            setFormData({
-                personalInfo: {
-                    fullName: profile?.personalInfo?.fullName || '',
-                    email: profile?.personalInfo?.email || '',
-                    phone: profile?.personalInfo?.phone || '',
-                    location: profile?.personalInfo?.location || '',
-                    linkedin: profile?.personalInfo?.linkedin || '',
-                    github: profile?.personalInfo?.github || '',
-                    portfolio: profile?.personalInfo?.portfolio || ''
-                },
-                summary: profile?.summary || '',
-                skills: profile?.skills || [],
-                experience: profile?.experience || [],
-                projects: profile?.projects || [],
-                education: {
-                    secondary: profile?.education?.secondary || { school: '', board: '', passingYear: '', score: '' },
-                    higherSecondary: profile?.education?.higherSecondary || { school: '', board: '', stream: '', passingYear: '', score: '' },
-                    graduation: profile?.education?.graduation || { college: '', degree: '', specialization: '', university: '', startYear: '', endYear: '', cgpa: '' },
-                    postGraduation: profile?.education?.postGraduation || { college: '', degree: '', specialization: '', university: '', startYear: '', endYear: '', cgpa: '' }
-                }
-            });
-        }
+        if (!profile) return; // null profile = new user, show blank form
+
+        console.log("[BuildResume/hydrate] Hydrating from profile:", {
+            experience: profile.experience?.length,
+            projects: profile.projects?.length,
+            education: Object.keys(profile.education || {}),
+        });
+
+        setFormData({
+            personalInfo: {
+                fullName: profile?.personalInfo?.fullName || '',
+                email: profile?.personalInfo?.email || '',
+                phone: profile?.personalInfo?.phone || '',
+                location: profile?.personalInfo?.location || '',
+                linkedin: profile?.personalInfo?.linkedin || '',
+                github: profile?.personalInfo?.github || '',
+                portfolio: profile?.personalInfo?.portfolio || ''
+            },
+            summary: profile?.summary || '',
+            skills: Array.isArray(profile?.skills) ? profile.skills : [],
+            experience: Array.isArray(profile?.experience) ? profile.experience : [],
+            projects: Array.isArray(profile?.projects) ? profile.projects : [],
+            education: {
+                secondary: profile?.education?.secondary || { school: '', board: '', passingYear: '', score: '' },
+                higherSecondary: profile?.education?.higherSecondary || { school: '', board: '', stream: '', passingYear: '', score: '' },
+                graduation: profile?.education?.graduation || { college: '', degree: '', specialization: '', university: '', startYear: '', endYear: '', cgpa: '' },
+                postGraduation: profile?.education?.postGraduation || { college: '', degree: '', specialization: '', university: '', startYear: '', endYear: '', cgpa: '' }
+            }
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [profile]);
 
     useEffect(() => {
@@ -345,11 +243,12 @@ const BuildResume = () => {
         setFormData(prev => ({ ...prev, experience: (prev.experience || []).filter((_, i) => i !== index) }));
     };
     const updateExperience = (index, field, value) => {
-        const updated = [...(formData.experience || [])];
-        if (updated[index]) {
-            updated[index][field] = value;
-            setFormData(prev => ({ ...prev, experience: updated }));
-        }
+        setFormData(prev => {
+            const updated = prev.experience.map((exp, i) =>
+                i === index ? { ...exp, [field]: value } : exp
+            );
+            return { ...prev, experience: updated };
+        });
     };
 
     // Projects Handlers
@@ -363,11 +262,12 @@ const BuildResume = () => {
         setFormData(prev => ({ ...prev, projects: (prev.projects || []).filter((_, i) => i !== index) }));
     };
     const updateProject = (index, field, value) => {
-        const updated = [...(formData.projects || [])];
-        if (updated[index]) {
-            updated[index][field] = value;
-            setFormData(prev => ({ ...prev, projects: updated }));
-        }
+        setFormData(prev => {
+            const updated = prev.projects.map((proj, i) =>
+                i === index ? { ...proj, [field]: value } : proj
+            );
+            return { ...prev, projects: updated };
+        });
     };
 
     // Education Handler
@@ -421,7 +321,12 @@ const BuildResume = () => {
     };
 
     const handleSave = () => {
-        dispatch(saveProfile({ ...formData, completionPercentage: calculateStrength() }));
+        const payload = { ...formData, completionPercentage: calculateStrength() };
+        console.log("[handleSave] Full payload:", JSON.stringify(payload, null, 2));
+        console.log("[handleSave] experience:", payload.experience?.length, payload.experience);
+        console.log("[handleSave] projects:", payload.projects?.length, payload.projects);
+        console.log("[handleSave] education:", payload.education);
+        dispatch(saveProfile(payload));
     };
 
     if (loading && !profile) {
@@ -892,7 +797,11 @@ const BuildResume = () => {
 
                     {/* Right Panel: Live Preview */}
                     <div className="lg:col-span-5 hidden lg:block">
-                        <LivePreview data={formData} />
+                        <LivePreview
+                            data={formData}
+                            onDownload={handleDownloadPdf}
+                            downloading={downloadingPdf}
+                        />
                     </div>
 
                 </div>

@@ -3,7 +3,7 @@ import Navbar from '../shared/Navbar'
 import { Label } from '../ui/label'
 import { Input } from '../ui/input'
 import { Button } from '../ui/button'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useLoginMutation } from '@/hooks/useAuthMutations'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -18,6 +18,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
     const loginMutation = useLoginMutation();
 
     const changeEventHandler = (e) => {
@@ -38,11 +39,14 @@ const Login = () => {
 
                 const user = result?.user || result?.data?.user;
 
-                if (user?.role === 'candidate') {
-                    navigate("/jobs");
-                } else {
-                    navigate("/admin/dashboard");
+                // Explicitly set "token" to ensure instructions are met
+                const token = result?.token || result?.data?.token;
+                if (token) {
+                    localStorage.setItem("token", token);
                 }
+
+                const from = location.state?.from || (user?.role === 'candidate' ? "/jobs" : "/admin/dashboard");
+                navigate(from);
             }
         } catch (error) {
             const msg = error.message.toLowerCase();

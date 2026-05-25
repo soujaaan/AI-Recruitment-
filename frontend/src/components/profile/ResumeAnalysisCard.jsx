@@ -62,14 +62,11 @@ const MetricCard = ({ icon: Icon, value, label, color, delay }) => (
 );
 
 const ResumeAnalysisCard = () => {
-    const { user } = useSelector(store => store.auth);
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { profile: resumeProfile } = useSelector(state => state.resume);
 
     useEffect(() => {
         const fetchAnalysis = async () => {
-            if (!user?.profile?.resume) {
+            if (!user?.profile?.resume && !resumeProfile) {
                 setLoading(false);
                 return;
             }
@@ -111,7 +108,7 @@ const ResumeAnalysisCard = () => {
             }
         };
         fetchAnalysis();
-    }, [user?.profile?.resume]);
+    }, [user?.profile?.resume, resumeProfile]);
 
     if (loading) {
         return (
@@ -132,7 +129,7 @@ const ResumeAnalysisCard = () => {
         );
     }
 
-    if (!user?.profile?.resume) {
+    if (!user?.profile?.resume && !resumeProfile) {
         return (
             <GlassCard className="text-center py-16 flex flex-col items-center justify-center h-full border-dashed border-white/10 bg-white/[0.02]">
                 <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mb-5 border border-accent/20 relative">

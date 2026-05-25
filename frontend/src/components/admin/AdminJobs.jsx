@@ -42,9 +42,6 @@ const AdminJobs = () => {
                             />
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Button onClick={() => navigate("/admin/questions")} variant="outline" className="whitespace-nowrap border-border">
-                                Question Bank
-                            </Button>
                             <Button onClick={() => navigate("/admin/jobs/create")} className="btn-neon whitespace-nowrap">
                                 <Plus className="w-4 h-4 mr-2" />
                                 Post New Job

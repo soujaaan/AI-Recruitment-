@@ -1,40 +1,16 @@
 import mongoose from "mongoose";
 
-const questionSchema = new mongoose.Schema({
-    role: {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
+const questionSchema = new mongoose.Schema(
+    {
+        questionBankId: { type: mongoose.Schema.Types.ObjectId, ref: "QuestionBank", required: true, index: true },
+        text: { type: String, required: true },
+        options: [{ type: String }],
+        correctAnswer: { type: String, default: "" },
+        difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
+        tags: [{ type: String, trim: true }],
+        isActive: { type: Boolean, default: true },
     },
-    question: {
-        type: String,
-        required: true
-    },
-    type: {
-        type: String,
-        enum: ["mcq", "text"],
-        required: true
-    },
-    options: [{
-        type: String
-    }],
-    correctAnswer: {
-        type: String
-    },
-    points: {
-        type: Number,
-        default: 1
-    },
-    difficulty: {
-        type: String,
-        enum: ["easy", "medium", "hard"],
-        default: "medium"
-    },
-    skill: {
-        type: String,
-        trim: true
-    }
-}, { timestamps: true });
+    { timestamps: true }
+);
 
 export const Question = mongoose.model("Question", questionSchema);

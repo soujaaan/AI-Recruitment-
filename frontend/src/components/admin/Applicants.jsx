@@ -11,6 +11,11 @@ const Applicants = () => {
     const params = useParams();
     useGetJobById(params.id);
 
+    const titleObj = {
+        normal: "Candidate",
+        highlight: "Applications"
+    };
+
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
             <Navbar />
@@ -18,7 +23,7 @@ const Applicants = () => {
                 <div className="max-w-7xl mx-auto">
                     <SectionHeader
                         label="01 — Applicants"
-                        title="Candidate <span class='gradient-text'>Applications</span>"
+                        title={titleObj}
                         subtitle="Review and manage applicants for this role."
                     />
 

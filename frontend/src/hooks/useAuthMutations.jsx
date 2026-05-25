@@ -46,7 +46,8 @@ export const useProfileMutation = () => {
         onSuccess: (data) => {
             const user = data?.user || data?.data?.user || null;
             if (user) {
-                dispatch(setAuthState({ user, token: localStorage.getItem("accessToken") || "" }));
+                // Cookie auth only; do not read token from localStorage.
+                dispatch(setAuthState({ user, token: "" }));
             }
             queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         },

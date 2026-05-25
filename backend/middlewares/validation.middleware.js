@@ -1,9 +1,18 @@
 import mongoose from "mongoose";
 import { ApiError } from "../utils/apiError.js";
-import { normalizeRole } from "../utils/role.utils.js";
+import { normalizeRole, ROLES } from "../utils/role.utils.js";
 
-const allowedApplicationStatuses = ["pending", "accepted", "rejected", "applied", "shortlisted"];
-const allowedSignupRoles = ["candidate", "recruiter", "student", "Candidate"];
+const allowedApplicationStatuses = [
+    "pending",
+    "accepted",
+    "rejected",
+    "applied",
+    "under review",
+    "shortlisted",
+    "interview scheduled",
+    "hired",
+];
+const allowedSignupRoles = [ROLES.CANDIDATE, ROLES.RECRUITER];
 const allowedJobTypes = ["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"];
 const allowedExperienceLevels = ["0-1", "1-3", "3-5", "5+"];
 const allowedSalaryRanges = ["3-5 LPA", "5-10 LPA", "10-20 LPA", "20+ LPA"];
@@ -43,7 +52,7 @@ export const validateRegistration = (req, res, next) => {
     if (!isStrongPassword(password)) {
         return next(new ApiError(400, "Password must be at least 8 characters long"));
     }
-    if (!role || (role !== "candidate" && role !== "recruiter")) {
+    if (!role || !allowedSignupRoles.includes(role)) {
         return next(new ApiError(400, "Role must be candidate or recruiter"));
     }
     next();
@@ -59,7 +68,7 @@ export const validateLogin = (req, res, next) => {
         return next(new ApiError(400, "Password is required"));
     }
     const normalizedRole = normalizeRole(role);
-    if (role && (!normalizedRole || !["candidate", "recruiter", "admin"].includes(normalizedRole))) {
+    if (role && (!normalizedRole || !Object.values(ROLES).includes(normalizedRole))) {
         return next(new ApiError(400, "Valid role is required"));
     }
     next();
@@ -141,13 +150,23 @@ export const validateObjectIdParam = (paramName) => {
     };
 };
 
-
+export const validateObjectId = (paramNames = ["id"]) => {
+    return (req, res, next) => {
+        for (const name of paramNames) {
+            const val = req.params[name] || req.body[name] || req.query[name];
+            if (val && !mongoose.Types.ObjectId.isValid(val)) {
+                return next(new ApiError(400, `Invalid ID format for ${name}`));
+            }
+        }
+        next();
+    };
+};
 
 export const validateRoleUpdate = (req, res, next) => {
     const { role } = req.body;
     const normalized = normalizeRole(role);
 
-    if (!normalized || !["candidate", "recruiter", "admin"].includes(normalized)) {
+    if (!normalized || !Object.values(ROLES).includes(normalized)) {
         return next(new ApiError(400, "Valid role is required"));
     }
     next();

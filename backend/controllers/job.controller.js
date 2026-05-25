@@ -5,9 +5,19 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { logger } from "../utils/logger.js";
+import {
+    attachApplicantCountsToJobs,
+    buildRecruiterJobsQuery,
+    countApplicationsForJobs,
+    getApplicantCountsByJobIds,
+    getRecruiterDashboardMetrics,
+    jobApplicationMatch,
+} from "../utils/jobApplicantCounts.js";
 
 const canManageJob = (job, user) =>
-    user?.role === "admin" || String(job.created_by) === String(user?.id);
+    user?.role === "admin" ||
+    String(job.created_by) === String(user?.id) ||
+    String(job.recruiterId) === String(user?.id);
 
 export const postJob = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.id;
@@ -119,30 +129,44 @@ export const getJobById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Job not found");
     }
 
-    return sendSuccess(res, 200, { job }, "Job fetched successfully", { job });
+    const applicantCount = await countApplicationsForJobs([job._id]);
+    const jobWithCount = {
+        ...(job.toObject ? job.toObject() : job),
+        applicantCount,
+    };
+
+    return sendSuccess(res, 200, { job: jobWithCount }, "Job fetched successfully", { job: jobWithCount });
 });
 
 export const getAdminJobs = asyncHandler(async (req, res) => {
-    const userId = req.user?.id || req.id;
     const { page, limit, skip } = getPagination(req.query);
-    const query =
-        req.user?.role === "admin" ? {} : { created_by: userId };
+    const query = buildRecruiterJobsQuery(req.user);
 
-const totalJobs = await Job.countDocuments(query);
+    const totalJobs = await Job.countDocuments(query);
     const jobs = await Job.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
+
+    const jobIds = jobs.map((j) => j._id);
+    const [countMap, metrics] = await Promise.all([
+        getApplicantCountsByJobIds(jobIds),
+        getRecruiterDashboardMetrics(jobIds),
+    ]);
+
+    const jobsWithCounts = attachApplicantCountsToJobs(jobs, countMap);
 
     return sendSuccess(
         res,
         200,
         {
-            jobs,
+            jobs: jobsWithCounts,
+            metrics,
             pagination: buildPaginationMeta(totalJobs, page, limit),
         },
         "Admin jobs fetched successfully",
-        { jobs }
+        { jobs: jobsWithCounts, metrics }
     );
 });
 
@@ -236,8 +260,7 @@ export const deleteJob = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You do not own this job");
     }
 
-    // Cascade delete related applications
-    await Application.deleteMany({ job: job._id });
+    await Application.deleteMany(jobApplicationMatch([job._id]));
 
     await Job.findByIdAndDelete(job._id);
 

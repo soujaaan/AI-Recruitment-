@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, ChevronDown, Check, X, FileText, Download, User, ArrowLeft } from 'lucide-react';
+import { Search, Check, X, FileText, Download, User, ArrowLeft, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/shared/Navbar';
 import SectionHeader from '@/components/common/SectionHeader';
@@ -11,9 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api';
 import EmptyState from '@/components/common/EmptyState';
+import useChatStore from '@/store/chatStore';
+import MatchSkillsDisplay from '@/components/recruitment/MatchSkillsDisplay';
+import { isValidMongoId, toMongoIdString } from '@/utils/mongoId';
 
 const JobApplicants = () => {
-    const { id } = useParams();
+    const { id: rawJobId } = useParams();
+    const jobId = toMongoIdString(rawJobId);
     const navigate = useNavigate();
     
     const [applications, setApplications] = useState([]);
@@ -22,29 +26,44 @@ const JobApplicants = () => {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
-    const [sortBy, setSortBy] = useState("assessment");
+    const [sortBy, setSortBy] = useState("match");
+    const [skillFilter, setSkillFilter] = useState("");
+    const [minMatchScore, setMinMatchScore] = useState("");
+    const [minAtsScore, setMinAtsScore] = useState("");
+
+    const fetchApplicants = useCallback(async () => {
+        if (!isValidMongoId(jobId)) {
+            setError("Invalid job ID in URL. Open applicants from your jobs list.");
+            setApplications([]);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+            const params = { sortBy };
+            if (skillFilter.trim()) params.skill = skillFilter.trim();
+            if (minMatchScore !== "") params.minMatchScore = minMatchScore;
+            if (minAtsScore !== "") params.minAtsScore = minAtsScore;
+
+            const response = await apiClient.get(`/api/applications/job/${jobId}`, { params });
+            const apps = response.data?.data || response.data;
+            setApplications(Array.isArray(apps) ? apps : []);
+            if (apps?.length > 0) {
+                setJob(apps[0].job);
+            }
+        } catch (err) {
+            console.error("Failed to fetch applicants:", err);
+            setError(err?.response?.data?.message || "Failed to load applicants");
+        } finally {
+            setLoading(false);
+        }
+    }, [jobId, sortBy, skillFilter, minMatchScore, minAtsScore]);
 
     useEffect(() => {
-        const fetchApplicants = async () => {
-            try {
-                setLoading(true);
-                const response = await apiClient.get(`/api/applications/job/${id}`);
-                // response.data could directly be the array if backend returned res.json(applications)
-                const apps = response.data?.data || response.data;
-                setApplications(apps);
-                if (apps.length > 0) {
-                    setJob(apps[0].job);
-                }
-            } catch (err) {
-                console.error("Failed to fetch applicants:", err);
-                setError(err?.response?.data?.message || "Failed to load applicants");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchApplicants();
-    }, [id]);
+    }, [fetchApplicants]);
 
     const handleUpdateStatus = async (applicationId, newStatus) => {
         try {
@@ -58,7 +77,34 @@ const JobApplicants = () => {
         }
     };
 
-    const handleViewResume = (resumeUrl) => {
+    const handleStartChat = async (candidateId) => {
+        if (!job) return;
+        try {
+            const recruiterId = job.created_by || job.recruiterId; // Handle both schemas
+            const res = await apiClient.post("/api/chat/create-room", {
+                candidateId,
+                recruiterId: recruiterId,
+                jobId: job._id
+            });
+            if (res.data?.success) {
+                const room = res.data.data;
+                useChatStore.getState().upsertRoom(room);
+                useChatStore.getState().setActiveRoomId(room._id);
+                navigate("/messages");
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to start chat");
+        }
+    };
+
+    const getResumeUrl = (app) =>
+        app.resumeUrl ||
+        app.candidateProfile?.resumePdfUrl ||
+        app.applicant?.profile?.resume ||
+        "";
+
+    const handleViewResume = (app) => {
+        const resumeUrl = getResumeUrl(app);
         if (!resumeUrl) {
             toast.error("No resume available");
             return;
@@ -66,14 +112,16 @@ const JobApplicants = () => {
         window.open(resumeUrl, "_blank");
     };
 
-    const handleDownloadResume = (resumeUrl) => {
+    const handleDownloadResume = (app, candidateName) => {
+        const resumeUrl = getResumeUrl(app);
         if (!resumeUrl) {
             toast.error("No resume available");
             return;
         }
         const link = document.createElement("a");
         link.href = resumeUrl;
-        link.download = "resume.pdf";
+        link.download = `${candidateName || "Candidate"}_Resume.pdf`;
+        link.target = "_blank";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -96,9 +144,8 @@ const JobApplicants = () => {
         })
         .filter(app => statusFilter === "all" || app.status === statusFilter)
         .sort((a, b) => {
-            if (sortBy === "assessment") return (b.assessmentScore || 0) - (a.assessmentScore || 0);
+            if (sortBy === "match") return (b.matchScore || 0) - (a.matchScore || 0);
             if (sortBy === "ats") return (b.atsScore || 0) - (a.atsScore || 0);
-            if (sortBy === "time") return (b.timeEfficiency || 0) - (a.timeEfficiency || 0);
             return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
@@ -138,14 +185,37 @@ const JobApplicants = () => {
                             />
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                            <Input
+                                className="w-full sm:w-36 bg-surface border-border"
+                                placeholder="Filter skill..."
+                                value={skillFilter}
+                                onChange={(e) => setSkillFilter(e.target.value)}
+                            />
+                            <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                className="w-full sm:w-28 bg-surface border-border"
+                                placeholder="Min match %"
+                                value={minMatchScore}
+                                onChange={(e) => setMinMatchScore(e.target.value)}
+                            />
+                            <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                className="w-full sm:w-28 bg-surface border-border"
+                                placeholder="Min ATS %"
+                                value={minAtsScore}
+                                onChange={(e) => setMinAtsScore(e.target.value)}
+                            />
                             <select 
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 className="w-full sm:w-auto bg-surface border border-border rounded-lg px-4 py-2 text-sm focus:border-accent focus:ring-accent/20 outline-none"
                             >
-                                <option value="assessment">Highest Assessment Score</option>
+                                <option value="match">Highest Match Score</option>
                                 <option value="ats">Highest ATS Score</option>
-                                <option value="time">Fastest Completion</option>
                                 <option value="date">Most Recent</option>
                             </select>
                             <select 
@@ -189,12 +259,17 @@ const JobApplicants = () => {
                                     className="group grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 bg-surface/60 border border-border rounded-2xl hover:border-accent/20 hover:bg-surface backdrop-blur-sm transition-all"
                                 >
                                     {/* Left: Candidate Info */}
-                                    <div className="col-span-1 lg:col-span-4 flex items-center gap-4">
+                                    <div className="col-span-1 lg:col-span-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-colors" onClick={() => navigate(`/candidate/${app.applicant._id}`, {
+                                        state: {
+                                            jobId: job?._id,
+                                            applicationId: app?._id,
+                                        },
+                                    })}>
                                         <Avatar className="w-14 h-14 border border-border bg-surface-elevated">
                                             <AvatarImage src={app.applicant?.profile?.profilePhoto} />
                                         </Avatar>
                                         <div>
-                                            <h4 className="font-display font-semibold text-lg text-foreground">
+                                            <h4 className="font-display font-semibold text-lg text-foreground hover:text-accent transition-colors">
                                                 {app.applicant?.fullname}
                                             </h4>
                                             <div className="text-sm text-muted-foreground mt-1 space-y-0.5">
@@ -204,15 +279,9 @@ const JobApplicants = () => {
                                         </div>
                                     </div>
 
-                                    {/* Center: ATS & Skills */}
+                                    {/* Center: Intelligence panel */}
                                     <div className="col-span-1 lg:col-span-5 space-y-3 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
-                                        <div className="flex items-center justify-between gap-4 mb-2">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider">Assessment</span>
-                                                <span className={`text-xl font-bold ${app.assessmentScore > 75 ? 'text-green-400' : app.assessmentScore > 50 ? 'text-yellow-400' : 'text-foreground'}`}>
-                                                    {app.assessmentScore || 0} pts
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center gap-6 mb-2">
                                             <div className="flex flex-col">
                                                 <span className="text-xs text-muted-foreground uppercase tracking-wider">ATS Score</span>
                                                 <span className={`text-xl font-bold ${app.atsScore > 75 ? 'text-[#00ff88]' : app.atsScore > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
@@ -220,32 +289,26 @@ const JobApplicants = () => {
                                                 </span>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider">AI Ranking</span>
-                                                <span className={`text-sm font-bold ${app.aiRanking === 'Highly Recommended' ? 'text-[#00ff88]' : app.aiRanking === 'Recommended' ? 'text-green-400' : app.aiRanking === 'Average Fit' ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                    {app.aiRanking || 'Average Fit'}
+                                                <span className="text-xs text-muted-foreground uppercase tracking-wider">Match Score</span>
+                                                <span className={`text-xl font-bold ${app.matchScore > 75 ? 'text-[#00ff88]' : app.matchScore > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                                    {app.matchScore ?? 0}%
                                                 </span>
                                             </div>
                                         </div>
-                                        
-                                        {app.aiEvaluationSummary && (
-                                            <div className="text-xs text-muted-foreground bg-surface-elevated p-2 rounded-lg border border-border mt-2">
-                                                {app.aiEvaluationSummary}
-                                                <span className="block mt-1">Efficiency: {app.timeEfficiency || 0}%</span>
-                                            </div>
+
+                                        <MatchSkillsDisplay
+                                            matchScore={app.matchScore}
+                                            matchedSkills={app.matchedSkills}
+                                            missingSkills={app.missingSkills}
+                                            compact
+                                        />
+
+                                        {app.candidateProfile?.experience?.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                {app.candidateProfile.experience[0]?.title} at {app.candidateProfile.experience[0]?.company}
+                                                {app.candidateProfile.experience.length > 1 && ` · +${app.candidateProfile.experience.length - 1} more`}
+                                            </p>
                                         )}
-                                        
-                                        <div className="flex flex-wrap gap-2">
-                                            {app.applicant?.profile?.skills?.slice(0, 4).map((skill, i) => (
-                                                <span key={i} className="px-2 py-1 text-xs rounded-md bg-white/5 border border-white/10 text-muted-foreground">
-                                                    {skill}
-                                                </span>
-                                            ))}
-                                            {app.applicant?.profile?.skills?.length > 4 && (
-                                                <span className="px-2 py-1 text-xs rounded-md bg-white/5 border border-white/10 text-muted-foreground">
-                                                    +{app.applicant.profile.skills.length - 4} more
-                                                </span>
-                                            )}
-                                        </div>
                                     </div>
 
                                     {/* Right: Actions */}
@@ -258,12 +321,12 @@ const JobApplicants = () => {
 
                                         <div className="flex items-center gap-2 w-full sm:w-auto">
                                             {/* Resume Actions */}
-                                            {app.applicant?.profile?.resume && (
+                                            {getResumeUrl(app) && (
                                                 <>
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
-                                                        onClick={() => handleViewResume(app.applicant.profile.resume)}
+                                                        onClick={() => handleViewResume(app)}
                                                         title="View Resume"
                                                         className="text-muted-foreground hover:text-accent hover:bg-accent/10"
                                                     >
@@ -272,7 +335,7 @@ const JobApplicants = () => {
                                                     <Button 
                                                         variant="ghost" 
                                                         size="icon" 
-                                                        onClick={() => handleDownloadResume(app.applicant.profile.resume)}
+                                                        onClick={() => handleDownloadResume(app, app.applicant?.fullname)}
                                                         title="Download Resume"
                                                         className="text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10"
                                                     >
@@ -305,6 +368,28 @@ const JobApplicants = () => {
                                                     <X className="w-4 h-4" />
                                                 </Button>
                                             )}
+
+                                            {/* Chat Action */}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleStartChat(app.applicant._id)}
+                                                title="Message Candidate"
+                                                className="text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                            >
+                                                <MessageSquare className="w-4 h-4" />
+                                            </Button>
+                                            
+                                            {/* Profile Action */}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => navigate(`/candidate/${app.applicant._id}`)}
+                                                title="View Profile"
+                                                className="text-muted-foreground hover:text-accent hover:bg-accent/10"
+                                            >
+                                                <User className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </div>
                                 </motion.div>

@@ -7,6 +7,7 @@ import {
     getAppliedJobs,
     updateStatus,
     getJobApplicants,
+    getJobMatchPreview,
 } from "../controllers/application.controller.js";
 import {
     validateApplicationSubmission,
@@ -22,6 +23,14 @@ router.route("/apply/:id").post(
     authorizeRoles("candidate"),
     validateApplicationSubmission,
     applyJob
+);
+
+// Candidate: job match preview before applying
+router.route("/match/:jobId").get(
+    isAuthenticated,
+    authorizeRoles("candidate"),
+    validateObjectIdParam("jobId"),
+    getJobMatchPreview
 );
 
 // Candidate: view applied jobs
@@ -40,6 +49,7 @@ router.route("/:id/applicants").get(
 router.route("/job/:jobId").get(
     isAuthenticated,
     authorizeRoles("recruiter", "admin"),
+    validateObjectIdParam("jobId"),
     getJobApplicants
 );
 

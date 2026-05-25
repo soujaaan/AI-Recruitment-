@@ -6,7 +6,7 @@ const authSlice = createSlice({
     initialState:{
         loading:false,
         user:null,
-        token: localStorage.getItem("accessToken") || "",
+        token: "" ,
         status:"idle",
         error:null
     },
@@ -19,27 +19,19 @@ const authSlice = createSlice({
             state.status = action.payload ? "authenticated" : "anonymous";
         },
         setToken:(state, action) => {
+            // Token is cookie-based; keep Redux token for UI only (optional) but do not persist.
             state.token = action.payload || "";
-            if (action.payload) {
-                localStorage.setItem("accessToken", action.payload);
-            } else {
-                localStorage.removeItem("accessToken");
-            }
         },
         setAuthState:(state, action) => {
             state.user = normalizeUser(action.payload?.user ?? null);
             state.token = action.payload?.token ?? state.token;
             state.status = action.payload?.user ? "authenticated" : "anonymous";
-            if (action.payload?.token) {
-                localStorage.setItem("accessToken", action.payload.token);
-            }
         },
         clearAuth:(state) => {
             state.user = null;
             state.token = "";
             state.status = "anonymous";
             state.error = null;
-            localStorage.removeItem("accessToken");
         },
         setAuthError:(state, action) => {
             state.error = action.payload;

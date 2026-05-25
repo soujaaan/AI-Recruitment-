@@ -19,7 +19,8 @@ const useCurrentUser = () => {
             return;
         }
 
-        dispatch(setAuthState({ user: data?.user || data?.data?.user || null, token: localStorage.getItem("accessToken") || "" }));
+        // Cookie auth only; do not read token from localStorage.
+        dispatch(setAuthState({ user: data?.user || data?.data?.user || null, token: "" }));
     }, [dispatch, query.data]);
 
     useEffect(() => {

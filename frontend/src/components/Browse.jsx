@@ -10,6 +10,11 @@ const Browse = () => {
     useGetAllJobs();
     const { allJobs } = useSelector(store => store.job);
 
+    const titleObj = {
+        normal: "Explore",
+        highlight: "Everything"
+    };
+
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
             <Navbar />
@@ -17,7 +22,7 @@ const Browse = () => {
                 <div className="max-w-7xl mx-auto">
                     <SectionHeader
                         label="02 — Browse"
-                        title="Explore <span class='gradient-text'>Everything</span>"
+                        title={titleObj}
                         subtitle="All open positions across every category, company, and location."
                     />
 

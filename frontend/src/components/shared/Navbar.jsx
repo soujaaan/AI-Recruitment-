@@ -3,6 +3,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { Avatar, AvatarImage } from '../ui/avatar';
 import { LogOut, MoonStar, Search, SunMedium, User2 } from 'lucide-react';
+import MessageButton from "@/components/navbar/MessageButton";
+import useChatStore from "@/store/chatStore";
+import MessageDropdown from "@/components/navbar/MessageDropdown";
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/redux/authSlice';
@@ -142,6 +145,23 @@ const Navbar = () => {
                             </>
                         )}
                     </ul>
+
+                    {/* Messages */}
+                    {user && (
+                        <div className="relative">
+                            <MessageButton
+                                onToggleDropdown={(open) => {
+                                    useChatStore.getState().setDropdownOpen(open);
+                                }}
+                            />
+                            {useChatStore((s) => s.dropdownOpen) && (
+                                <MessageDropdown
+                                    onClose={() => useChatStore.getState().setDropdownOpen(false)}
+                                />
+                            )}
+                        </div>
+                    )}
+
 
                     {/* Theme Toggle */}
                     <Button

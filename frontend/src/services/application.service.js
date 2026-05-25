@@ -5,10 +5,14 @@ const unwrap = (response) => response.data;
 export const applicationService = {
     async apply(jobId) {
         try {
+            console.log("===== APPLY REQUEST =====");
+            console.log({ jobId });
             const response = await apiClient.post(`/api/v1/application/apply/${jobId}`);
             return unwrap(response);
         } catch (error) {
-            throw new Error(getApiErrorMessage(error));
+            console.log("APPLICATION ERROR:", error.response?.data);
+            // Throw the original error or response data so component can extract message
+            throw error;
         }
     },
     async getAppliedJobs(params = {}) {
@@ -23,6 +27,14 @@ export const applicationService = {
         try {
             const response = await apiClient.get(`/api/v1/application/${jobId}/applicants`, { params });
             return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+    async getMatchPreview(jobId) {
+        try {
+            const response = await apiClient.get(`/api/v1/application/match/${jobId}`);
+            return response.data?.data || response.data;
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
         }

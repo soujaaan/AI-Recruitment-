@@ -2,17 +2,40 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, Target } from 'lucide-react';
 import GlassCard from '../common/GlassCard';
+import { useSelector } from 'react-redux';
 
 const ProfileCompletion = ({ user }) => {
-    const checklist = useMemo(() => [
-        { label: "Basic Info Added", isComplete: !!(user?.fullname && user?.email) },
-        { label: "Contact Info Added", isComplete: !!user?.phoneNumber },
-        { label: "Resume Built", isComplete: !!user?.profile?.resume },
-        { label: "Skills Added", isComplete: !!(user?.profile?.skills && user?.profile?.skills.length > 0) },
-        { label: "Bio Added", isComplete: !!user?.profile?.bio },
-    ], [user]);
+    const { profile: resumeProfile } = useSelector(state => state.resume);
+
+    const checklist = useMemo(() => {
+        const hasResumeBuilt = !!resumeProfile;
+const edu = resumeProfile?.education || {};
+        // education is an OBJECT in Mongo schema (graduation/postGraduation/secondary/higherSecondary)
+        const hasEducation = !!(
+            edu?.graduation?.college ||
+            edu?.postGraduation?.college ||
+            edu?.secondary?.school ||
+            edu?.higherSecondary?.school
+        );
+        const hasExperience = Array.isArray(resumeProfile?.experience) && resumeProfile.experience.length > 0;
+        const hasProjects = Array.isArray(resumeProfile?.projects) && resumeProfile.projects.length > 0;
+        
+        console.log("Profile Strength calculation - Resume Data:", resumeProfile);
+
+        return [
+            { label: "Basic Info Added", isComplete: !!(user?.fullname && user?.email) },
+            { label: "Contact Info Added", isComplete: !!user?.phoneNumber },
+            { label: "Resume Built", isComplete: hasResumeBuilt && (hasEducation || hasExperience || hasProjects || !!resumeProfile?.skills?.length) },
+            { label: "Education Added", isComplete: hasEducation },
+            { label: "Experience Added", isComplete: hasExperience },
+            { label: "Projects Added", isComplete: hasProjects },
+        ];
+    }, [user, resumeProfile]);
 
     const completedCount = checklist.filter(item => item.isComplete).length;
+
+    // Ensure we never show an incorrect fixed percentage.
+    // If resumeProfile exists but sections are empty, this will now reflect correctly.
     const completionPercentage = Math.round((completedCount / checklist.length) * 100);
 
     const isComplete = completionPercentage === 100;

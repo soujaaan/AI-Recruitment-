@@ -1,15 +1,22 @@
-# TODO - Fix Flask ATS pipeline end-to-end
+# TODO - Assessment Engine Removal & AI Interview Flow
 
-- [x] Implement automatic ATS analysis immediately after resume upload (persist Resume.parsedData + ResumeAnalysis)
+## Completed
 
-- [x] Add robust debugging logs in Flask ATS service (startup, model load, request payload length, transform/predict stages)
+- [x] Remove assessment API mounting (`backend/index.js`)
+- [x] Delete assessment routes, controllers, models, services
+- [x] Remove assessment DB fields from Application & Job schemas
+- [x] Update candidate controller (interview logs instead of assessments)
+- [x] Add `AIInterviewLog` model + enhanced interview questions API
+- [x] Delete `Assessment.jsx` and `Questions.jsx`
+- [x] Remove frontend routes `/assessment/:jobId` and `/admin/questions`
+- [x] Fix apply flow in `JobDescription.jsx`
+- [x] Remove assessment UI from `JobApplicants.jsx` and `CandidateProfile.jsx`
+- [x] Add "Generate Interview Questions" on recruiter candidate profile
+- [x] Frontend production build verified
 
-- [x] Add robust debugging logs + better validation in Node resume.controller.js parseResume endpoint
+## Optional follow-up
 
-- [x] Fix frontend endpoint mismatch to use `GET /api/ai/resume-analysis`
-
-
-- [ ] Add optional frontend fallback: if GET returns 404, call `POST /api/resume/parse` then refetch
-
-- [ ] Run minimal end-to-end test: upload resume -> verify Flask /analyze called -> verify Mongo persisted -> verify Profile shows analysis
-
+- [ ] Manually drop obsolete MongoDB collections (see `ASSESSMENT_REMOVAL_REPORT.md`)
+- [ ] Delete `saved/` MCQ JSON files if no longer needed
+- [ ] Remove orphaned `frontend/src/components/ai/AIInterviewPanel.jsx`
+- [ ] Update `frontend/src/services/ai.service.js` to match new API shape

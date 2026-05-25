@@ -19,11 +19,15 @@ import companyRoute from "./routes/company.route.js";
 import adminRoute from "./routes/admin.route.js";
 import resumeRoute from "./routes/resume.route.js";
 import atsRoute from "./routes/ats.route.js";
-import assessmentRoute from "./routes/assessment.route.js";
+
 import authRoute from "./routes/auth.route.js";
 import aiRoutes from "./routes/ai.routes.js";
 import profileRoute from "./routes/profile.route.js";
+import candidateRoute from "./routes/candidate.route.js";
+import chatRoute from "./routes/chat.route.js";
+import interviewRoute from "./routes/interview.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
+import { attachChatSocket } from "./socket/chat.socket.js";
 
 import path from "path";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
@@ -70,9 +74,12 @@ app.use("/api/v1/company", companyRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/resume", resumeRoute);
 app.use("/api/ats", atsRoute);
-app.use("/api/v1/assessment", assessmentRoute);
+
 app.use("/api/ai", aiRoutes);
 app.use("/api/profile", profileRoute);
+app.use("/api/candidates", candidateRoute);
+app.use("/api/chat", chatRoute);
+app.use("/api/interviews", interviewRoute);
 
 // Serve uploads folder locally
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
@@ -95,31 +102,50 @@ app.use(errorHandler);
 const startServer = async () => {
     await connectDB();
     
-    // Seed Admin User
-    try {
-        const adminEmail = "admin@hiresense.com";
-        const adminExists = await User.findOne({ email: adminEmail });
-        if (!adminExists) {
-            const hashedPassword = await bcrypt.hash("adminhiresense", 10);
-            await User.create({
-                fullname: "System Admin",
-                email: adminEmail,
-                phoneNumber: "0000000000",
-                password: hashedPassword,
-                role: "admin",
-                profile: {
-                    profilePhoto: "",
-                },
-            });
-            console.log("Admin account seeded: admin@hiresense.com");
+    // Optional admin seeding (never runs by default)
+    if (process.env.SEED_ADMIN === "true") {
+        // Safety: do not seed in production unless explicitly enabled
+        if (env.nodeEnv === "production") {
+            logger.warn("SEED_ADMIN enabled in production; proceeding with admin seeding.");
         }
-    } catch (error) {
-        console.error("Failed to seed admin:", error);
+
+        try {
+            const adminEmail = process.env.ADMIN_EMAIL;
+            const adminPassword = process.env.ADMIN_PASSWORD;
+
+            if (!adminEmail || !adminPassword) {
+                throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set when SEED_ADMIN=true");
+            }
+
+            const adminExists = await User.findOne({ email: adminEmail });
+            if (!adminExists) {
+                const hashedPassword = await bcrypt.hash(adminPassword, 10);
+                await User.create({
+                    fullname: "System Admin",
+                    email: adminEmail,
+                    phoneNumber: "0000000000",
+                    password: hashedPassword,
+                    role: "admin",
+                    profile: {
+                        profilePhoto: "",
+                    },
+                });
+                logger.info("Admin account seeded via SEED_ADMIN flag.");
+            } else {
+                logger.info("Admin account already exists; skipping seeding.");
+            }
+        } catch (error) {
+            logger.error("Failed to seed admin", { message: error?.message });
+        }
     }
 
-    app.listen(env.port, () => {
+
+    const server = app.listen(env.port, () => {
         logger.info(`Server running on port ${env.port}`);
     });
+
+    // Socket.io (chat)
+    attachChatSocket(server);
 };
 
 process.on("unhandledRejection", (reason) => {

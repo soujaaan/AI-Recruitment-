@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Navbar from '@/components/shared/Navbar'
 import SectionHeader from '@/components/common/SectionHeader'
 import GlassCard from '@/components/common/GlassCard'
@@ -6,20 +6,23 @@ import EmptyState from '@/components/common/EmptyState'
 import useGetAppliedJobs from '@/hooks/useGetAppliedJobs'
 import { useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
-import { Badge } from '@/components/ui/badge'
-import { Briefcase, MapPin, Calendar, ArrowRight } from 'lucide-react'
+import { Briefcase, MapPin, Calendar, ArrowRight, Video } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import MatchSkillsDisplay from '@/components/recruitment/MatchSkillsDisplay'
+import { interviewService } from '@/services/interview.service'
 
 const StatusBadge = ({ status }) => {
     const variants = {
         applied: 'bg-surface-elevated text-muted-foreground border-border',
         shortlisted: 'bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 shadow-[0_0_15px_rgba(0,255,136,0.15)]',
+        'interview scheduled': 'bg-blue-500/10 text-blue-400 border-blue-500/30',
         rejected: 'bg-red-500/10 text-red-400 border-red-500/30'
     };
 
     const labels = {
         applied: 'Applied',
         shortlisted: 'Shortlisted',
+        'interview scheduled': 'Interview Scheduled',
         rejected: 'Rejected'
     };
 
@@ -35,12 +38,22 @@ const ApplicationsPage = () => {
     const navigate = useNavigate();
     const { allAppliedJobs } = useSelector(store => store.job);
     const { isLoading } = useGetAppliedJobs();
+    const [interviews, setInterviews] = useState([]);
+
+    useEffect(() => {
+        interviewService.getMyInterviews().then(setInterviews).catch(() => setInterviews([]));
+    }, []);
 
     const stats = [
         { label: 'Total', value: allAppliedJobs.length, color: 'text-foreground' },
         { label: 'Shortlisted', value: allAppliedJobs.filter(a => a.status === 'shortlisted').length, color: 'text-[#00ff88]' },
         { label: 'Rejected', value: allAppliedJobs.filter(a => a.status === 'rejected').length, color: 'text-red-400' }
     ];
+
+    const titleObj = {
+        normal: "Your",
+        highlight: "Applications"
+    };
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -49,7 +62,7 @@ const ApplicationsPage = () => {
                 <div className="max-w-5xl mx-auto">
                     <SectionHeader
                         label="01 — Applications"
-                        title="Your <span class='gradient-text'>Applications</span>"
+                        title={titleObj}
                         subtitle="Track all your job applications and their current status in one place."
                     />
 
@@ -62,8 +75,42 @@ const ApplicationsPage = () => {
                         ))}
                     </div>
 
+                    {interviews.length > 0 && (
+                        <div className="mt-12">
+                            <p className="section-label mb-6">02 — Upcoming Interviews</p>
+                            <div className="space-y-3">
+                                {interviews.map((iv) => (
+                                    <GlassCard key={iv._id} className="p-5">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                            <div>
+                                                <h4 className="font-display font-semibold text-foreground flex items-center gap-2">
+                                                    <Video className="w-4 h-4 text-blue-400" />
+                                                    {iv.job?.title}
+                                                </h4>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    {new Date(iv.scheduledAt).toLocaleString()} · {iv.job?.company?.name}
+                                                </p>
+                                                {iv.notes && <p className="text-xs text-muted-foreground mt-2">{iv.notes}</p>}
+                                            </div>
+                                            {iv.meetingLink && (
+                                                <a
+                                                    href={iv.meetingLink}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="btn-neon-outline px-4 py-2 rounded-lg text-sm text-center"
+                                                >
+                                                    Join Meeting
+                                                </a>
+                                            )}
+                                        </div>
+                                    </GlassCard>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className="mt-12">
-                        <p className="section-label mb-6">02 — Application History</p>
+                        <p className="section-label mb-6">{interviews.length > 0 ? '03' : '02'} — Application History</p>
                         {isLoading ? (
                             <div className="space-y-3">
                                 {[1, 2, 3].map(i => (
@@ -121,8 +168,18 @@ const ApplicationsPage = () => {
                                                     {app.job?.salary && (
                                                         <p className="text-sm text-accent/80 mt-1">{app.job.salary}</p>
                                                     )}
+                                                    {(app.matchScore !== undefined || app.matchedSkills?.length) && (
+                                                        <div className="mt-4 pt-4 border-t border-border" onClick={(e) => e.stopPropagation()}>
+                                                            <MatchSkillsDisplay
+                                                                matchScore={app.matchScore}
+                                                                matchedSkills={app.matchedSkills}
+                                                                missingSkills={app.missingSkills}
+                                                                compact
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all" />
+                                                <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all shrink-0" />
                                             </div>
                                         </div>
                                     </motion.div>

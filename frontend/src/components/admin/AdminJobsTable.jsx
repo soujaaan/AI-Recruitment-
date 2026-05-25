@@ -8,6 +8,7 @@ import { Button } from '../ui/button'
 import { Briefcase, Building2, Users, ArrowRight, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useJobMutations } from '@/hooks/useJobMutations'
+import { toMongoIdString } from '@/utils/mongoId'
 import {
     Dialog,
     DialogContent,
@@ -48,13 +49,14 @@ const AdminJobsTable = ({ filter = '' }) => {
                 />
             ) : (
                 filteredJobs.map((job) => {
-                    const applicantsCount = job.applications?.length || 0;
+                    const jobId = toMongoIdString(job._id);
+                    const applicantsCount = job.applicantCount ?? 0;
 
                     return (
                         <motion.div
-                            key={job._id}
+                            key={jobId}
                             whileHover={{ scale: 1.01 }}
-                            onClick={() => navigate('/admin/jobs/' + job._id + '/applicants')}
+                            onClick={() => navigate(`/admin/jobs/${jobId}/applicants`)}
                             className='group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/40 hover:shadow-[0_0_20px_rgba(0,255,136,0.15)] hover:bg-surface transition-all cursor-pointer duration-300'
                         >
                             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
@@ -98,7 +100,7 @@ const AdminJobsTable = ({ filter = '' }) => {
                                             className='h-8 w-8 text-muted-foreground hover:text-accent hover:bg-accent/10'
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate('/admin/jobs/' + job._id + '/applicants');
+                                                navigate(`/admin/jobs/${jobId}/applicants`);
                                             }}
                                             title='View Applicants'
                                         >
@@ -155,10 +157,10 @@ const AdminJobsTable = ({ filter = '' }) => {
 
                                                     <Button
                                                         variant='destructive'
-                                                        onClick={() => handleDelete(job._id)}
-                                                        disabled={deletingId === job._id}
+                                                        onClick={() => handleDelete(jobId)}
+                                                        disabled={deletingId === jobId}
                                                     >
-                                                        {deletingId === job._id ? (
+                                                        {deletingId === jobId ? (
                                                             <>
                                                                 <Loader2 className='w-4 h-4 mr-2 animate-spin' />
                                                                 Deleting...
@@ -172,7 +174,7 @@ const AdminJobsTable = ({ filter = '' }) => {
 
                                     <ArrowRight
                                         className='w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all cursor-pointer'
-                                        onClick={() => navigate('/admin/jobs/' + job._id + '/applicants')}
+                                        onClick={() => navigate(`/admin/jobs/${jobId}/applicants`)}
                                     />
                                 </div>
 

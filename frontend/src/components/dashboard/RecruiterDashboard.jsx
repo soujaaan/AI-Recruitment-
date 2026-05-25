@@ -5,18 +5,28 @@ import SectionHeader from '../common/SectionHeader'
 import GlassCard from '../common/GlassCard'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { Briefcase, Building2, Users, ArrowRight, Plus, ListFilter } from 'lucide-react'
+import { Briefcase, Building2, Users, ArrowRight, Plus, ListFilter, UserCheck, Calendar, UserX, Trophy } from 'lucide-react'
 import useGetAllAdminJobs from '@/hooks/useGetAllAdminJobs'
+import { toMongoIdString } from '@/utils/mongoId'
 
 const RecruiterDashboard = () => {
     const { user } = useSelector(store => store.auth);
     const navigate = useNavigate();
     const { data: adminJobsData } = useGetAllAdminJobs();
     const adminJobs = adminJobsData?.jobs || [];
+    const metrics = adminJobsData?.metrics || {};
+
+    const totalApplicants =
+        metrics.totalApplicants ??
+        adminJobs.reduce((acc, job) => acc + (job.applicantCount ?? 0), 0);
 
     const stats = [
         { label: "Posted Jobs", value: adminJobs.length, icon: Briefcase },
-        { label: "Total Applicants", value: adminJobs.reduce((acc, job) => acc + (job.applications?.length || 0), 0), icon: Users },
+        { label: "Total Applicants", value: totalApplicants, icon: Users },
+        { label: "Shortlisted", value: metrics.shortlisted ?? 0, icon: UserCheck },
+        { label: "Interviews", value: metrics.interviewsScheduled ?? 0, icon: Calendar },
+        { label: "Hired", value: metrics.hired ?? 0, icon: Trophy },
+        { label: "Rejected", value: metrics.rejected ?? 0, icon: UserX },
         { label: "Companies", value: user?.companies?.length || 0, icon: Building2 },
     ];
 
@@ -30,7 +40,7 @@ const RecruiterDashboard = () => {
                 />
 
                 {/* Stats */}
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {stats.map((stat, index) => (
                         <GlassCard key={index} animate delay={index * 0.1} className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
@@ -84,11 +94,13 @@ const RecruiterDashboard = () => {
                         </GlassCard>
                     ) : (
                         <div className="space-y-3">
-                            {adminJobs.slice(0, 5).map((job, index) => (
+                            {adminJobs.slice(0, 5).map((job) => {
+                                const jobId = toMongoIdString(job._id);
+                                return (
                                 <div
-                                    key={job._id}
+                                    key={jobId}
                                     className="group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/20 hover:bg-surface transition-all cursor-pointer"
-                                    onClick={() => navigate(`/admin/jobs/${job._id}/applicants`)}
+                                    onClick={() => navigate(`/admin/jobs/${jobId}/applicants`)}
                                 >
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div>
@@ -102,7 +114,7 @@ const RecruiterDashboard = () => {
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <Users className="w-3.5 h-3.5" />
-                                                    {job.applications?.length || 0} applicants
+                                                    {job.applicantCount ?? 0} applicants
                                                 </span>
                                             </div>
                                         </div>
@@ -112,7 +124,8 @@ const RecruiterDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            );
+                            })}
                         </div>
                     )}
                 </div>

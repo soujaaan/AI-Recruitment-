@@ -1,98 +1,177 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-// Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, "../.env") });
 
-// Load env vars
-dotenv.config({ path: join(__dirname, '../.env') });
+import { User } from "../models/user.model.js";
+import { Company } from "../models/company.model.js";
+import { CandidateProfile } from "../models/candidateProfile.model.js";
+import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
+import { Resume } from "../models/resume.model.js";
+import { Job } from "../models/job.model.js";
+import { Application } from "../models/application.model.js";
+import { InterviewSchedule } from "../models/interviewSchedule.model.js";
 
-import { User } from '../models/user.model.js';
-import { Company } from '../models/company.model.js';
-import { Job } from '../models/job.model.js';
-import { Application } from '../models/application.model.js';
+import { SEED_VOLUMES } from "./config.js";
+import { batchInsert } from "./helpers.js";
+import { purgeSeedData } from "./purgeSeedData.js";
+import { resetToPreJobPosting } from "./purgeHiringData.js";
+import { runHiringSimulation } from "./hiring/orchestrator.js";
+import { buildRecruiters } from "./seedRecruiters.js";
+import { buildCompanies } from "./seedCompanies.js";
+import {
+    buildCandidates,
+    attachProfilesToUsers,
+    buildResumeAnalyses,
+    buildResumes,
+} from "./seedCandidates.js";
 
-import { generateRecruiters } from './recruiters.js';
-import { generateCompanies } from './companies.js';
-import { generateCandidates } from './candidates.js';
-import { generateJobs } from './jobs.js';
-import { generateApplications } from './applications.js';
+const stripMeta = (docs) =>
+    docs.map((d) => {
+        const { _seedMeta, _index, _userIndex, ...rest } = d;
+        return rest;
+    });
 
-const seedDB = async () => {
+const printHiringSummary = async () => {
+    const [jobs, applications, interviews, candidates, recruiters] = await Promise.all([
+        Job.countDocuments(),
+        Application.countDocuments(),
+        InterviewSchedule.countDocuments(),
+        User.countDocuments({ role: "candidate" }),
+        User.countDocuments({ role: "recruiter" }),
+    ]);
+    console.log(`Jobs:              ${jobs}`);
+    console.log(`Applications:      ${applications}`);
+    console.log(`Interviews:        ${interviews}`);
+    console.log(`Candidates:        ${candidates}`);
+    console.log(`Recruiters:        ${recruiters}`);
+};
+
+/** Foundation-only seed: recruiters + companies + rich candidate profiles. */
+const runFoundationSeed = async () => {
+    console.log("=== 1/3 Recruiters ===");
+    const recruiterBuilt = await buildRecruiters(SEED_VOLUMES.recruiters);
+    const recruiters = await batchInsert(User, stripMeta(recruiterBuilt), "Recruiters");
+
+    console.log("\n=== 2/3 Companies (1 per recruiter) ===");
+    const companyDocs = stripMeta(buildCompanies(recruiters.length, recruiters, recruiterBuilt));
+    const companies = await batchInsert(Company, companyDocs, "Companies");
+
+    console.log("  → Linking recruiters to companies...");
+    await User.bulkWrite(
+        recruiters.map((rec, i) => {
+            const company = companies[i];
+            return {
+                updateOne: {
+                    filter: { _id: rec._id },
+                    update: {
+                        $set: {
+                            company: company._id,
+                            companyId: company._id,
+                            profilePhoto: rec.profile?.profilePhoto || "",
+                        },
+                        $unset: { profile: "" },
+                    },
+                },
+            };
+        })
+    );
+
+    console.log("\n=== 3/3 Candidates & profiles ===");
+    const { users: candidateUsers, profiles: rawProfiles } = await buildCandidates(
+        SEED_VOLUMES.candidates
+    );
+    const candidateDocs = stripMeta(candidateUsers);
+    const candidates = await batchInsert(User, candidateDocs, "Candidates");
+
+    console.log("  → Creating Resumes...");
+    const resumeDocs = buildResumes(candidates);
+    const resumes = await batchInsert(Resume, resumeDocs, "Resumes");
+
+    console.log("  → Creating CandidateProfiles...");
+    const profileDocs = attachProfilesToUsers(candidateUsers, rawProfiles, candidates, resumes);
+    const profiles = await batchInsert(CandidateProfile, stripMeta(profileDocs), "CandidateProfiles");
+
+    console.log("  → Backfilling User.profile refs...");
+    const userBulk = profiles.map((p) => ({
+        updateOne: {
+            filter: { _id: p.userId },
+            update: { $set: { profile: p._id } },
+        },
+    }));
+    if (userBulk.length) await User.bulkWrite(userBulk);
+
+    const analyses = await batchInsert(
+        ResumeAnalysis,
+        buildResumeAnalyses(candidates, rawProfiles),
+        "ResumeAnalyses"
+    );
+
+    return { recruiters, companies, candidates, profiles, resumes, analyses };
+};
+
+const runSeed = async () => {
+    const start = Date.now();
+    const freshAccounts = process.argv.includes("--fresh");
+    const withHiring = process.argv.includes("--with-hiring");
+
     try {
-        console.log('Connecting to MongoDB...');
+        console.log("Connecting to MongoDB...");
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('MongoDB connected successfully!');
+        console.log("Connected.\n");
 
-        // 1. Clean Database safely
-        console.log('Clearing old collections...');
-        await User.deleteMany({ role: { $in: ['candidate', 'recruiter'] } });
-        await Company.deleteMany({});
-        await Job.deleteMany({});
-        await Application.deleteMany({});
-
-        // 2. Generate and Insert Recruiters
-        console.log('Generating Recruiters...');
-        const recruitersData = await generateRecruiters(10);
-        const createdRecruiters = await User.insertMany(recruitersData);
-        const recruiterIds = createdRecruiters.map(r => r._id);
-
-        // 3. Generate and Insert Companies
-        console.log('Generating Companies...');
-        const companiesData = generateCompanies(25, recruiterIds);
-        const createdCompanies = await Company.insertMany(companiesData);
-
-        // Update recruiters with company references
-        for (let i = 0; i < createdRecruiters.length; i++) {
-            // Assign a random company to each recruiter
-            const randomCompany = createdCompanies[Math.floor(Math.random() * createdCompanies.length)];
-            await User.findByIdAndUpdate(createdRecruiters[i]._id, {
-                'profile.company': randomCompany._id
-            });
+        if (withHiring && !freshAccounts) {
+            await runHiringSimulation();
+            await printHiringSummary();
+            const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+            console.log(`Duration: ${elapsed}s\n`);
+            process.exit(0);
         }
 
-        // 4. Generate and Insert Candidates
-        console.log('Generating Candidates...');
-        const candidatesData = await generateCandidates(40);
-        const createdCandidates = await User.insertMany(candidatesData);
+        if (freshAccounts) {
+            console.log(
+                `Mode: --fresh${withHiring ? " + --with-hiring" : ""} (full account purge + reseed)\n`
+            );
+            await purgeSeedData();
+            await runFoundationSeed();
 
-        // 5. Generate and Insert Jobs
-        console.log('Generating Jobs...');
-        const jobsData = generateJobs(100, createdCompanies, createdRecruiters);
-        const createdJobs = await Job.insertMany(jobsData);
+            if (withHiring) {
+                await runHiringSimulation();
+            }
 
-        // 6. Generate and Insert Applications
-        console.log('Generating Applications...');
-        const applicationsData = generateApplications(300, createdCandidates, createdJobs);
-        const createdApplications = await Application.insertMany(applicationsData);
-
-        // Update Jobs with Application References
-        console.log('Updating Job application references...');
-        for (const app of createdApplications) {
-            await Job.findByIdAndUpdate(app.job, {
-                $push: { applications: app._id }
-            });
+            const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+            console.log("\n=======================================");
+            console.log(withHiring ? "✅ FULL SEED COMPLETE (foundation + hiring)" : "✅ FOUNDATION SEED COMPLETE");
+            console.log("=======================================");
+            await printHiringSummary();
+            console.log(`Duration:          ${elapsed}s`);
+            console.log("=======================================");
+            if (!withHiring) {
+                console.log("Rebuild hiring only: npm run seed -- --with-hiring\n");
+            }
+            process.exit(0);
         }
 
-        console.log('\n=======================================');
-        console.log('✅ SEEDING COMPLETE');
-        console.log('=======================================');
-        console.log(`✓ Companies Created: ${createdCompanies.length}`);
-        console.log(`✓ Recruiters Created: ${createdRecruiters.length}`);
-        console.log(`✓ Candidates Created: ${createdCandidates.length}`);
-        console.log(`✓ Skills Categorized: 150+`);
-        console.log(`✓ Jobs Created: ${createdJobs.length}`);
-        console.log(`✓ Applications Created: ${createdApplications.length}`);
-        console.log('=======================================\n');
-
+        console.log("Mode: hiring reset only (preserving existing accounts)\n");
+        await resetToPreJobPosting();
+        console.log("\n=======================================");
+        console.log("✅ HIRING DATA CLEARED (accounts preserved)");
+        console.log("=======================================");
+        await printHiringSummary();
+        console.log("=======================================");
+        console.log("Rebuild hiring:  npm run seed -- --with-hiring");
+        console.log("Full reseed:     npm run seed:fresh");
+        console.log("Full + hiring:   npm run seed:fresh -- --with-hiring\n");
         process.exit(0);
     } catch (error) {
-        console.error('Error during seeding:', error);
+        console.error("Seeding failed:", error);
+        if (error.details) console.error(error.details.join("\n"));
         process.exit(1);
     }
 };
 
-seedDB();
+runSeed();

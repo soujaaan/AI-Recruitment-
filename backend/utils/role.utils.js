@@ -1,33 +1,26 @@
+import { ROLES, ROLE_ALIASES } from "../constants/roles.js";
+
 /**
  * Role normalization utility
  * Maps legacy DB values to normalized internal values
  * Supports: candidate, recruiter, admin
  */
-
-const ROLE_MAP = {
-    candidate: "candidate",
-    student: "candidate",
-    Candidate: "candidate",
-    CANDIDATE: "candidate",
-    recruiter: "recruiter",
-    RECRUITER: "recruiter",
-    admin: "admin",
-    ADMIN: "admin",
-};
-
 export const normalizeRole = (role) => {
     if (!role) return null;
-    return ROLE_MAP[role] || role.toLowerCase();
+    // Map any alias to the normalized role
+    const normalized = ROLE_ALIASES[role] || role.toLowerCase();
+    
+    // Add fallback checks for user/jobseeker to candidate
+    if (normalized === 'user' || normalized === 'jobseeker') {
+        return ROLES.CANDIDATE;
+    }
+    
+    return normalized;
 };
 
 export const isValidRole = (role) => {
     const normalized = normalizeRole(role);
-    return ["candidate", "recruiter", "admin"].includes(normalized);
+    return Object.values(ROLES).includes(normalized);
 };
 
-export const ROLES = {
-    CANDIDATE: "candidate",
-    RECRUITER: "recruiter",
-    ADMIN: "admin",
-};
-
+export { ROLES };
