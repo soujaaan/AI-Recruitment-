@@ -10,6 +10,7 @@ import Pagination from './common/Pagination'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
 import { Input } from './ui/input'
 import { Search } from 'lucide-react'
+import JobIllustration from '@/assets/illustrations/JobIllustration.png'
 
 const Jobs = () => {
 
@@ -127,27 +128,35 @@ const Jobs = () => {
                             relative
                         ">
 
-                            {/* Glow Behind Image */}
+                            {/* Soft Emerald Radial Glow Behind Image */}
                             <div className="
                                 absolute
-                                w-[400px]
-                                h-[400px]
+                                w-[450px]
+                                h-[450px]
                                 rounded-full
-                                bg-[#00ff88]/10
+                                bg-[#10b981]/15
                                 blur-[120px]
+                                pointer-events-none
+                                z-0
                             " />
 
                             {/* Illustration */}
                             <img
-                                src="/illustrations/job-search.svg"
+                                src={JobIllustration}
                                 alt="Job Search Illustration"
+                                loading="lazy"
                                 className="
                                     relative
                                     z-10
-                                    w-[420px]
+                                    w-full
+                                    max-w-[620px]
                                     object-contain
+                                    opacity-95
                                     animate-float
-                                    drop-shadow-[0_0_40px_rgba(0,255,140,0.12)]
+                                    drop-shadow-[0_0_35px_rgba(16,185,129,0.25)]
+                                    transition-all
+                                    duration-500
+                                    hover:scale-[1.02]
                                 "
                             />
 
