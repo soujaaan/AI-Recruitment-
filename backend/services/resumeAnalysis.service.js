@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import pdf from "pdf-parse";
 
 import { ApiError } from "../utils/apiError.js";
 import { env } from "../config/env.js";
@@ -32,6 +31,8 @@ const extractPdfText = async (resumePathOrUrl) => {
     buffer = fs.readFileSync(filePath);
   }
 
+  const pdfModule = await import("pdf-parse");
+  const pdf = pdfModule.default;
   const parsed = await pdf(buffer);
   const text = parsed?.text || "";
   if (!text.trim()) {

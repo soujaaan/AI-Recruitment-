@@ -2,9 +2,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import * as fs from "fs/promises";
 import path from "path";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
 import { User } from "../models/user.model.js";
 import { Resume } from "../models/resume.model.js";
 import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
@@ -337,6 +334,8 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.path}`);
 
                 const pdfBuffer = await fs.readFile(req.file.path);
+                const pdfModule = await import("pdf-parse");
+                const pdfParse = pdfModule.default;
                 const pdfData = await pdfParse(pdfBuffer);
                 let text = pdfData?.text?.trim() || '';
 

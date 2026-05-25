@@ -3,13 +3,9 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import fs from "fs";
 import path from "path";
-import { createRequire } from "module";
 import { aiAnalyzeResume } from "../services/resumeAnalysis.service.js";
 import { Resume } from "../models/resume.model.js";
 import ResumeAnalysis from "../models/resumeAnalysis.model.js";
-
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
 
 const extractPdfText = async (resumeFileUrlOrPath) => {
     let buffer;
@@ -30,6 +26,8 @@ const extractPdfText = async (resumeFileUrlOrPath) => {
         buffer = fs.readFileSync(filePath);
     }
 
+    const pdfModule = await import("pdf-parse");
+    const pdf = pdfModule.default;
     const parsed = await pdf(buffer);
     const text = parsed?.text || "";
 
