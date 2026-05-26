@@ -172,23 +172,7 @@ const Navbar = () => {
                     >
                         {theme === "dark" ? <SunMedium /> : <MoonStar />}
                     </Button>
-                    {!user && (
-    <div className="hidden md:flex items-center rounded-xl border border-border overflow-hidden">
-        
-        <Link to="/signup">
-            <button className="px-5 py-2 bg-transparent text-foreground hover:bg-white/5 transition-all duration-300">
-                Sign up
-            </button>
-        </Link>
 
-        <Link to="/login">
-            <button className="px-5 py-2 bg-accent text-black font-medium hover:opacity-90 transition-all duration-300">
-                Log in
-            </button>
-        </Link>
-
-    </div>
-)}
 
                     {/* User Menu */}
                     {user && (
