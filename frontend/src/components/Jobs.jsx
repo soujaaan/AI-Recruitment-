@@ -8,12 +8,10 @@ import SectionHeader from './common/SectionHeader'
 import EmptyState from './common/EmptyState'
 import Pagination from './common/Pagination'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
-import { Input } from './ui/input'
 import { Search } from 'lucide-react'
-import JobIllustration from '@/assets/illustrations/JobIllustration.png'
+import { Input } from './ui/input'
 
 const Jobs = () => {
-
     const { allJobs, jobPagination } = useSelector(store => store.job);
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -56,109 +54,56 @@ const Jobs = () => {
                 <div className="max-w-7xl mx-auto relative z-10">
 
                     {/* HERO SECTION */}
-                    <div className="
-                        grid
-                        lg:grid-cols-2
-                        gap-10
-                        items-center
-                    ">
+                    <div className="max-w-4xl">
 
-                        {/* LEFT CONTENT */}
-                        <div>
+                        <SectionHeader
+                            label="02 — Jobs"
+                            title={
+                                <>
+                                    Discover{" "}
+                                    <span className="gradient-text">
+                                        Your Next Opportunity
+                                    </span>
+                                </>
+                            }
+                            subtitle="Browse thousands of curated openings tailored to your skills, location, and career goals."
+                        />
 
-                            <SectionHeader
-                                label="02 — Jobs"
-                                title={
-                                    <>
-                                        Discover{" "}
-                                        <span className="gradient-text">
-                                            Your Next Opportunity
-                                        </span>
-                                    </>
-                                }
-                                subtitle="Browse thousands of curated openings tailored to your skills, location, and career goals."
-                            />
+                        {/* Search Bar */}
+                        <div className="mt-6 max-w-2xl">
 
-                            {/* Search Bar */}
-                            <div className="mt-8 max-w-2xl">
+                            <div className="relative">
 
-                                <div className="relative">
+                                <Search className="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    w-4 h-4
+                                    text-muted-foreground
+                                " />
 
-                                    <Search className="
-                                        absolute
-                                        left-4
-                                        top-1/2
-                                        -translate-y-1/2
-                                        w-4 h-4
-                                        text-muted-foreground
-                                    " />
-
-                                    <Input
-                                        value={searchQuery}
-                                        onChange={(e) =>
-                                            setSearchQuery(e.target.value)
-                                        }
-                                        placeholder="Search by role, company, or keyword..."
-                                        className="
-                                            pl-11
-                                            py-6
-                                            bg-surface
-                                            border-border
-                                            rounded-2xl
-                                            text-foreground
-                                            placeholder:text-muted-foreground
-                                            focus:border-accent
-                                            focus:ring-accent/20
-                                            transition-all
-                                        "
-                                    />
-
-                                </div>
+                                <Input
+                                    value={searchQuery}
+                                    onChange={(e) =>
+                                        setSearchQuery(e.target.value)
+                                    }
+                                    placeholder="Search by role, company, or keyword..."
+                                    className="
+                                        pl-11
+                                        py-6
+                                        bg-surface
+                                        border-border
+                                        rounded-2xl
+                                        text-foreground
+                                        placeholder:text-muted-foreground
+                                        focus:border-accent
+                                        focus:ring-accent/20
+                                        transition-all
+                                    "
+                                />
 
                             </div>
-
-                        </div>
-
-                        {/* RIGHT ILLUSTRATION */}
-                        <div className="
-                            hidden
-                            lg:flex
-                            justify-center
-                            items-center
-                            relative
-                        ">
-
-                            {/* Soft Emerald Radial Glow Behind Image */}
-                            <div className="
-                                absolute
-                                w-[450px]
-                                h-[450px]
-                                rounded-full
-                                bg-[#10b981]/15
-                                blur-[120px]
-                                pointer-events-none
-                                z-0
-                            " />
-
-                            {/* Illustration */}
-                            <img
-                                src={JobIllustration}
-                                alt="Job Search Illustration"
-                                loading="lazy"
-                                className="
-                                    relative
-                                    z-10
-                                    w-full
-                                    max-w-[620px]
-                                    object-contain
-                                    opacity-95
-                                    animate-float
-                                    drop-shadow-[0_0_35px_rgba(16,185,129,0.25)]
-                                    transition-all
-                                    duration-500
-                                    hover:scale-[1.02]
-                                "
-                            />
 
                         </div>
 
