@@ -8,9 +8,9 @@ import useChatStore from "@/store/chatStore";
 import MessageDropdown from "@/components/navbar/MessageDropdown";
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { clearAuth } from '@/redux/authSlice';
+import { clearAuth, setAuthState } from '@/redux/authSlice';
 import { toast } from 'sonner';
-import { useLogoutMutation } from '@/hooks/useAuthMutations';
+import { useLogoutMutation, useLoginMutation } from '@/hooks/useAuthMutations';
 import { useTheme } from 'next-themes';
 
 const Navbar = () => {
@@ -19,6 +19,38 @@ const Navbar = () => {
     const navigate = useNavigate();
     const logoutMutation = useLogoutMutation();
     const { theme, setTheme } = useTheme();
+
+    const [navEmail, setNavEmail] = useState("");
+    const [navPassword, setNavPassword] = useState("");
+    const [isNavLoggingIn, setIsNavLoggingIn] = useState(false);
+    const loginMutation = useLoginMutation();
+
+    const handleNavbarLogin = async (e) => {
+        e.preventDefault();
+        setIsNavLoggingIn(true);
+        try {
+            const result = await loginMutation.mutateAsync({ email: navEmail, password: navPassword });
+            const user = result?.user || result?.data?.user || null;
+            const token = result?.token || result?.data?.token || "";
+            
+            dispatch(setAuthState({ user, token }));
+            
+            if (token) {
+                localStorage.setItem("token", token);
+            }
+            toast.success(result?.message || "Welcome back!");
+            
+            if (user?.role === "recruiter" || user?.role === "admin") {
+                navigate("/admin/dashboard");
+            } else {
+                navigate("/jobs");
+            }
+        } catch (error) {
+            toast.error(error.message || "Login failed");
+        } finally {
+            setIsNavLoggingIn(false);
+        }
+    };
 
     const [scrolled, setScrolled] = useState(false);
 
@@ -162,6 +194,33 @@ const Navbar = () => {
                         </div>
                     )}
 
+                    {!user && (
+                        <form onSubmit={handleNavbarLogin} className="hidden lg:flex items-center gap-2 border-l border-border/40 pl-4 ml-2">
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                value={navEmail}
+                                onChange={(e) => setNavEmail(e.target.value)}
+                                required
+                                className="h-9 px-2.5 text-sm bg-[#0d0d0d] border border-border/70 focus:border-accent rounded-md text-foreground placeholder:text-muted-foreground/45 outline-none w-36 transition-all"
+                            />
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={navPassword}
+                                onChange={(e) => setNavPassword(e.target.value)}
+                                required
+                                className="h-9 px-2.5 text-sm bg-[#0d0d0d] border border-border/70 focus:border-accent rounded-md text-foreground placeholder:text-muted-foreground/45 outline-none w-36 transition-all"
+                            />
+                            <Button
+                                type="submit"
+                                disabled={isNavLoggingIn}
+                                className="h-9 px-3.5 text-sm font-semibold rounded-md bg-accent text-black hover:brightness-110 transition-all shrink-0"
+                            >
+                                {isNavLoggingIn ? "..." : "Log In"}
+                            </Button>
+                        </form>
+                    )}
 
                     {/* Theme Toggle */}
                     <Button
