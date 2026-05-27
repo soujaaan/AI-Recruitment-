@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MessageSquare, Calendar, Download, FileText, Check, X, ShieldAlert, CheckCircle2, TrendingUp, AlertTriangle, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, MessageSquare, Calendar, Download, FileText, Check, X, ShieldAlert, CheckCircle2, TrendingUp, AlertTriangle, ExternalLink, Loader2, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/shared/Navbar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -243,58 +243,114 @@ const CandidateProfile = () => {
 
                             {/* Action Buttons */}
                             <div className="flex flex-wrap gap-3">
-                                <Button className="btn-neon gap-2 hover:shadow-[0_0_15px_rgba(0,255,136,0.2)]" onClick={handleStartChat} disabled={startingChat}>
+                                <Button className="bg-[#00ff88]/10 hover:bg-[#00ff88]/20 border border-[#00ff88]/30 text-[#00ff88] gap-2" onClick={handleStartChat} disabled={startingChat}>
                                     {startingChat ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />} Message
                                 </Button>
                                 <Button variant="outline" className="gap-2" onClick={handleDownloadResume}>
                                     <Download className="w-4 h-4" /> Resume
                                 </Button>
                                 
-                                {relevantApp && relevantApp.status !== 'shortlisted' && (
-                                    <Button 
-                                        variant="outline" 
-                                        className="border-green-500/30 text-green-400 hover:bg-green-500/10 gap-2"
-                                        onClick={() => handleUpdateStatus('shortlisted')}
-                                        disabled={updatingStatus}
-                                    >
-                                        <Check className="w-4 h-4" /> Shortlist
-                                    </Button>
+                                {/* Dynamic Status Pipeline Buttons */}
+                                {relevantApp && relevantApp.status === 'applied' && (
+                                    <>
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-green-500/30 text-green-400 hover:bg-green-500/10 gap-2"
+                                            onClick={() => handleUpdateStatus('shortlisted')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <Check className="w-4 h-4" /> Shortlist
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2"
+                                            onClick={() => handleUpdateStatus('rejected')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <X className="w-4 h-4" /> Reject
+                                        </Button>
+                                    </>
                                 )}
-                                
-                                {relevantApp && relevantApp.status !== 'rejected' && (
-                                    <Button 
-                                        variant="outline" 
-                                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2"
-                                        onClick={() => handleUpdateStatus('rejected')}
-                                        disabled={updatingStatus}
-                                    >
-                                        <X className="w-4 h-4" /> Reject
-                                    </Button>
+
+                                {relevantApp && relevantApp.status === 'shortlisted' && (
+                                    <>
+                                        {(activeJobId || analytics?.relevantJobId) && (
+                                            <ScheduleInterviewDialog
+                                                candidateId={candidateId}
+                                                jobId={activeJobId || analytics.relevantJobId}
+                                                applicationId={applicationId || analytics.relevantApplicationId}
+                                                candidateName={basic.fullname}
+                                                onScheduled={refreshCandidate}
+                                                trigger={
+                                                    <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 gap-2">
+                                                        <Calendar className="w-4 h-4" /> Schedule Interview
+                                                    </Button>
+                                                }
+                                            />
+                                        )}
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-[#00ff88]/30 text-[#00ff88] hover:bg-[#00ff88]/10 gap-2"
+                                            onClick={() => handleUpdateStatus('hired')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <Trophy className="w-4 h-4" /> Hire Candidate
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2"
+                                            onClick={() => handleUpdateStatus('rejected')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <X className="w-4 h-4" /> Reject
+                                        </Button>
+                                    </>
+                                )}
+
+                                {relevantApp && relevantApp.status === 'interview' && (
+                                    <>
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-[#00ff88]/30 text-[#00ff88] hover:bg-[#00ff88]/10 gap-2"
+                                            onClick={() => handleUpdateStatus('hired')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <Trophy className="w-4 h-4" /> Hire Candidate
+                                        </Button>
+                                        <Button 
+                                            variant="outline" 
+                                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-2"
+                                            onClick={() => handleUpdateStatus('rejected')}
+                                            disabled={updatingStatus}
+                                        >
+                                            <X className="w-4 h-4" /> Reject
+                                        </Button>
+                                    </>
+                                )}
+
+                                {relevantApp && relevantApp.status === 'hired' && (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 border border-accent/20 rounded-lg text-xs font-semibold text-accent">
+                                        <Trophy className="w-4 h-4" /> Hired Candidate
+                                    </span>
+                                )}
+
+                                {relevantApp && relevantApp.status === 'rejected' && (
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-semibold text-red-400">
+                                        <X className="w-4 h-4" /> Application Rejected
+                                    </span>
                                 )}
                                 
                                 {(activeJobId || analytics?.relevantJobId) && (
-                                    <ScheduleInterviewDialog
-                                        candidateId={candidateId}
-                                        jobId={activeJobId || analytics.relevantJobId}
-                                        applicationId={applicationId || analytics.relevantApplicationId}
-                                        candidateName={basic.fullname}
-                                        onScheduled={refreshCandidate}
-                                        trigger={
-                                            <Button variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 gap-2">
-                                                <Calendar className="w-4 h-4" /> Schedule Interview
-                                            </Button>
-                                        }
-                                    />
+                                    <Button
+                                        variant="outline"
+                                        className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-2"
+                                        onClick={handleGenerateInterviewQuestions}
+                                        disabled={generatingQuestions}
+                                    >
+                                        {generatingQuestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        Generate Interview Questions
+                                    </Button>
                                 )}
-                                <Button
-                                    variant="outline"
-                                    className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 gap-2"
-                                    onClick={handleGenerateInterviewQuestions}
-                                    disabled={generatingQuestions}
-                                >
-                                    {generatingQuestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                    Generate Interview Questions
-                                </Button>
                             </div>
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Check, X, FileText, Download, User, ArrowLeft, MessageSquare } from 'lucide-react';
+import { Search, Check, X, FileText, Download, User, ArrowLeft, MessageSquare, ChevronDown, ChevronUp, Clock, Trophy, Calendar, Sparkles, Briefcase, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/shared/Navbar';
 import SectionHeader from '@/components/common/SectionHeader';
@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api';
 import EmptyState from '@/components/common/EmptyState';
 import useChatStore from '@/store/chatStore';
 import MatchSkillsDisplay from '@/components/recruitment/MatchSkillsDisplay';
+import ScheduleInterviewDialog from '@/components/recruitment/ScheduleInterviewDialog';
 import { isValidMongoId, toMongoIdString } from '@/utils/mongoId';
 
 const JobApplicants = () => {
@@ -30,6 +31,10 @@ const JobApplicants = () => {
     const [skillFilter, setSkillFilter] = useState("");
     const [minMatchScore, setMinMatchScore] = useState("");
     const [minAtsScore, setMinAtsScore] = useState("");
+    const [expandedCardIds, setExpandedCardIds] = useState({});
+    const toggleExpand = (appId) => {
+        setExpandedCardIds(prev => ({ ...prev, [appId]: !prev[appId] }));
+    };
 
     const fetchApplicants = useCallback(async () => {
         if (!isValidMongoId(jobId)) {
@@ -131,8 +136,21 @@ const JobApplicants = () => {
         switch (status) {
             case 'shortlisted': return 'green';
             case 'rejected': return 'destructive';
+            case 'interview': return 'purple';
+            case 'hired': return 'green';
             case 'applied':
             default: return 'outline';
+        }
+    };
+
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 'applied': return 'Applied';
+            case 'shortlisted': return 'Shortlisted';
+            case 'interview': return 'Interview Scheduled';
+            case 'hired': return 'Hired';
+            case 'rejected': return 'Rejected';
+            default: return status;
         }
     };
 
@@ -218,18 +236,49 @@ const JobApplicants = () => {
                                 <option value="ats">Highest ATS Score</option>
                                 <option value="date">Most Recent</option>
                             </select>
-                            <select 
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full sm:w-auto bg-surface border border-border rounded-lg px-4 py-2 text-sm focus:border-accent focus:ring-accent/20 outline-none"
-                            >
-                                <option value="all">All Statuses</option>
-                                <option value="applied">Applied</option>
-                                <option value="shortlisted">Shortlisted</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
                         </div>
                     </motion.div>
+
+                    {/* Pipeline Stage Tabs */}
+                    {(() => {
+                        const countAll = applications.length;
+                        const countApplied = applications.filter(a => a.status === 'applied').length;
+                        const countShortlisted = applications.filter(a => a.status === 'shortlisted').length;
+                        const countInterview = applications.filter(a => a.status === 'interview').length;
+                        const countHired = applications.filter(a => a.status === 'hired').length;
+                        const countRejected = applications.filter(a => a.status === 'rejected').length;
+
+                        return (
+                            <div className="mt-8 flex flex-wrap gap-2 border-b border-border/40 pb-3">
+                                {[
+                                    { id: 'all', label: 'All Candidates', count: countAll, color: 'text-muted-foreground' },
+                                    { id: 'applied', label: 'Applied', count: countApplied, color: 'text-blue-400' },
+                                    { id: 'shortlisted', label: 'Shortlisted', count: countShortlisted, color: 'text-emerald-400' },
+                                    { id: 'interview', label: 'Interview Scheduled', count: countInterview, color: 'text-indigo-400' },
+                                    { id: 'hired', label: 'Hired', count: countHired, color: 'text-accent' },
+                                    { id: 'rejected', label: 'Rejected', count: countRejected, color: 'text-red-400' },
+                                ].map((tab) => {
+                                    const isActive = statusFilter === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setStatusFilter(tab.id)}
+                                            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg border transition-all ${
+                                                isActive
+                                                    ? 'bg-surface border-accent text-accent shadow-[0_0_10px_rgba(0,255,136,0.05)]'
+                                                    : 'bg-surface/30 border-border/80 text-muted-foreground hover:border-border hover:text-foreground'
+                                            }`}
+                                        >
+                                            <span>{tab.label}</span>
+                                            <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-background/60 border border-border/40 ${tab.color}`}>
+                                                {tab.count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
 
                     {/* Content */}
                     <div className="mt-8 space-y-4">
@@ -250,150 +299,265 @@ const JobApplicants = () => {
                                 description="Adjust your filters or wait for more candidates to apply."
                             />
                         ) : (
-                            filteredApplications.map((app, index) => (
-                                <motion.div
-                                    key={app._id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="group grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 bg-surface/60 border border-border rounded-2xl hover:border-accent/20 hover:bg-surface backdrop-blur-sm transition-all"
-                                >
-                                    {/* Left: Candidate Info */}
-                                    <div className="col-span-1 lg:col-span-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-colors" onClick={() => navigate(`/candidate/${app.applicant._id}`, {
-                                        state: {
-                                            jobId: job?._id,
-                                            applicationId: app?._id,
-                                        },
-                                    })}>
-                                        <Avatar className="w-14 h-14 border border-border bg-surface-elevated">
-                                            <AvatarImage src={app.applicant?.profile?.profilePhoto} />
-                                        </Avatar>
-                                        <div>
-                                            <h4 className="font-display font-semibold text-lg text-foreground hover:text-accent transition-colors">
-                                                {app.applicant?.fullname}
-                                            </h4>
-                                            <div className="text-sm text-muted-foreground mt-1 space-y-0.5">
-                                                <p>{app.applicant?.email}</p>
-                                                <p>{app.applicant?.profile?.phoneNumber || "No phone number"}</p>
+                            filteredApplications.map((app, index) => {
+                                const isExpanded = !!expandedCardIds[app._id];
+                                const isRejected = app.status === 'rejected';
+                                const isHired = app.status === 'hired';
+
+                                const statusRingColor = 
+                                    app.status === 'shortlisted' ? 'ring-2 ring-emerald-500' :
+                                    app.status === 'interview' ? 'ring-2 ring-indigo-500' :
+                                    app.status === 'hired' ? 'ring-2 ring-accent' :
+                                    app.status === 'rejected' ? 'ring-2 ring-red-500/40' : 'ring-1 ring-border';
+
+                                const latestRole = app.candidateProfile?.headline || app.applicant?.profile?.headline || (app.candidateProfile?.experience?.[0] ? `${app.candidateProfile.experience[0].title} at ${app.candidateProfile.experience[0].company}` : "Candidate Profile");
+
+                                return (
+                                    <motion.div
+                                        key={app._id}
+                                        initial={{ opacity: 0, y: 15 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.03 }}
+                                        className={`group flex flex-col p-5 bg-surface/50 border rounded-2xl transition-all ${
+                                            isRejected ? 'opacity-65 border-border/40' : 
+                                            isHired ? 'border-accent/40 shadow-[0_0_15px_rgba(0,255,136,0.05)]' : 
+                                            'border-border hover:border-accent/20 hover:bg-surface'
+                                        }`}
+                                    >
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                                            {/* Zone 1: Candidate Identity */}
+                                            <div 
+                                                className="col-span-1 lg:col-span-4 flex items-center gap-4 cursor-pointer"
+                                                onClick={() => navigate(`/candidate/${app.applicant._id}`, {
+                                                    state: {
+                                                        jobId: job?._id,
+                                                        applicationId: app?._id,
+                                                    },
+                                                })}
+                                            >
+                                                <Avatar className={`w-14 h-14 ${statusRingColor} bg-surface-elevated`}>
+                                                    <AvatarImage src={app.applicant?.profile?.profilePhoto} />
+                                                </Avatar>
+                                                <div className="min-w-0">
+                                                    <h4 className="font-display font-semibold text-base text-foreground group-hover:text-accent transition-colors truncate">
+                                                        {app.applicant?.fullname}
+                                                    </h4>
+                                                    <p className="text-xs text-accent mt-0.5 truncate font-medium">
+                                                        {latestRole}
+                                                    </p>
+                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+                                                        <Clock className="w-3 h-3 text-muted-foreground" />
+                                                        <span>Applied {new Date(app.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                                                        <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-muted-foreground" /> {app.applicant?.email}</span>
+                                                        {app.applicant?.profile?.phoneNumber && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" /> {app.applicant?.profile?.phoneNumber}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Zone 2: ATS Intelligence */}
+                                            <div className="col-span-1 lg:col-span-4 flex flex-col gap-1.5 border-t lg:border-t-0 lg:border-l border-border/80 pt-4 lg:pt-0 lg:pl-6 h-full justify-center">
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ATS:</span>
+                                                        <span className={`text-sm font-bold ${app.atsScore >= 75 ? 'text-[#00ff88]' : app.atsScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                                            {app.atsScore || 0}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Match:</span>
+                                                        <span className={`text-sm font-bold ${app.matchScore >= 75 ? 'text-[#00ff88]' : app.matchScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                                            {app.matchScore ?? 0}%
+                                                        </span>
+                                                    </div>
+                                                    {app.aiRanking && (
+                                                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0.2 border-none ${
+                                                            app.aiRanking === 'Highly Recommended' ? 'bg-[#00ff88]/10 text-[#00ff88]' :
+                                                            app.aiRanking === 'Recommended' ? 'bg-emerald-500/5 text-emerald-400/80' :
+                                                            app.aiRanking === 'Average Fit' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
+                                                        }`}>
+                                                            {app.aiRanking}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={(e) => { e.stopPropagation(); toggleExpand(app._id); }} 
+                                                    className="text-accent hover:text-accent hover:bg-accent/10 mt-1 flex items-center gap-1 text-xs py-1 px-2 h-7 w-fit rounded-lg border border-accent/10 hover:border-accent/30"
+                                                >
+                                                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                                    <span>{isExpanded ? 'Hide Details' : 'Show Details'}</span>
+                                                </Button>
+                                            </div>
+
+                                            {/* Zone 3: Recruiter Actions */}
+                                            <div className="col-span-1 lg:col-span-4 flex flex-col sm:flex-row items-center justify-end gap-3 border-t lg:border-t-0 border-border/80 pt-4 lg:pt-0">
+                                                <Badge variant={getStatusVariant(app.status)} className="capitalize px-2.5 py-1 text-xs font-semibold mr-auto lg:mr-2">
+                                                    {getStatusLabel(app.status)}
+                                                </Badge>
+
+                                                <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end" onClick={(e) => e.stopPropagation()}>
+                                                    {/* Utility buttons */}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleStartChat(app.applicant._id)}
+                                                        title="Message Candidate"
+                                                        className="text-muted-foreground hover:text-accent hover:bg-accent/10 w-8 h-8 rounded-lg border border-border/60"
+                                                    >
+                                                        <MessageSquare className="w-4 h-4" />
+                                                    </Button>
+
+                                                    {getResumeUrl(app) && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            onClick={() => handleViewResume(app)}
+                                                            title="View Resume"
+                                                            className="text-muted-foreground hover:text-accent hover:bg-accent/10 w-8 h-8 rounded-lg border border-border/60"
+                                                        >
+                                                            <FileText className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+
+                                                    {/* Status Pipeline Buttons */}
+                                                    {app.status === 'applied' && (
+                                                        <>
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
+                                                                className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium"
+                                                            >
+                                                                <Check className="w-3.5 h-3.5" /> Shortlist
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'rejected')}
+                                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" /> Reject
+                                                            </Button>
+                                                        </>
+                                                    )}
+
+                                                    {app.status === 'shortlisted' && (
+                                                        <>
+                                                            <ScheduleInterviewDialog
+                                                                candidateId={app.applicant._id}
+                                                                jobId={job?._id}
+                                                                applicationId={app._id}
+                                                                candidateName={app.applicant?.fullname}
+                                                                onScheduled={fetchApplicants}
+                                                                trigger={
+                                                                    <Button 
+                                                                        size="sm"
+                                                                        className="bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium"
+                                                                    >
+                                                                        <Calendar className="w-3.5 h-3.5" /> Schedule
+                                                                    </Button>
+                                                                }
+                                                            />
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'hired')}
+                                                                className="bg-accent text-black hover:bg-accent/90 text-xs py-1 h-8 px-3 rounded-lg flex items-center gap-1 font-semibold"
+                                                            >
+                                                                <Trophy className="w-3.5 h-3.5" /> Hire
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'rejected')}
+                                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" /> Reject
+                                                            </Button>
+                                                        </>
+                                                    )}
+
+                                                    {app.status === 'interview' && (
+                                                        <>
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'hired')}
+                                                                className="bg-accent text-black hover:bg-accent/90 text-xs py-1 h-8 px-3 rounded-lg flex items-center gap-1 font-semibold"
+                                                            >
+                                                                <Trophy className="w-3.5 h-3.5" /> Hire
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm"
+                                                                onClick={() => handleUpdateStatus(app._id, 'rejected')}
+                                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" /> Reject
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Center: Intelligence panel */}
-                                    <div className="col-span-1 lg:col-span-5 space-y-3 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
-                                        <div className="flex items-center gap-6 mb-2">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider">ATS Score</span>
-                                                <span className={`text-xl font-bold ${app.atsScore > 75 ? 'text-[#00ff88]' : app.atsScore > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                    {app.atsScore || 0}%
-                                                </span>
+                                        {/* Drawer Section — Collapsible details */}
+                                        {isExpanded && (
+                                            <div className="mt-4 pt-4 border-t border-border/60 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-foreground">
+                                                {/* Expanded Column 1: Skills & AI Summary */}
+                                                <div className="space-y-4">
+                                                    {app.aiEvaluationSummary && (
+                                                        <div>
+                                                            <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                                                <Sparkles className="w-3 h-3 text-accent" /> AI Insights Summary
+                                                            </h5>
+                                                            <p className="text-xs text-muted-foreground leading-relaxed bg-surface-elevated/40 border border-border/40 p-2.5 rounded-lg">
+                                                                "{app.aiEvaluationSummary}"
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    <MatchSkillsDisplay
+                                                        matchScore={app.matchScore}
+                                                        matchedSkills={app.matchedSkills}
+                                                        missingSkills={app.missingSkills}
+                                                        compact
+                                                    />
+                                                </div>
+
+                                                {/* Expanded Column 2: Work Experience */}
+                                                <div className="border-t md:border-t-0 md:border-l border-border/60 pt-4 md:pt-0 md:pl-6 space-y-4">
+                                                    <div>
+                                                        <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                                                            <Briefcase className="w-3 h-3 text-accent" /> Work History
+                                                        </h5>
+                                                        {app.candidateProfile?.experience?.length > 0 ? (
+                                                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                                                {app.candidateProfile.experience.map((exp, idx) => (
+                                                                    <div key={idx} className="p-2 border border-border/40 bg-surface-elevated/30 rounded-lg text-xs">
+                                                                        <div className="flex justify-between items-start font-medium text-foreground">
+                                                                            <span>{exp.title}</span>
+                                                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">
+                                                                                {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="text-accent mt-0.5">{exp.company}</div>
+                                                                        {exp.responsibilities && (
+                                                                            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                                                                {exp.responsibilities}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="text-xs text-muted-foreground italic">No professional work history specified.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-xs text-muted-foreground uppercase tracking-wider">Match Score</span>
-                                                <span className={`text-xl font-bold ${app.matchScore > 75 ? 'text-[#00ff88]' : app.matchScore > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                    {app.matchScore ?? 0}%
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <MatchSkillsDisplay
-                                            matchScore={app.matchScore}
-                                            matchedSkills={app.matchedSkills}
-                                            missingSkills={app.missingSkills}
-                                            compact
-                                        />
-
-                                        {app.candidateProfile?.experience?.length > 0 && (
-                                            <p className="text-xs text-muted-foreground">
-                                                {app.candidateProfile.experience[0]?.title} at {app.candidateProfile.experience[0]?.company}
-                                                {app.candidateProfile.experience.length > 1 && ` · +${app.candidateProfile.experience.length - 1} more`}
-                                            </p>
                                         )}
-                                    </div>
-
-                                    {/* Right: Actions */}
-                                    <div className="col-span-1 lg:col-span-3 flex flex-col sm:flex-row items-center justify-end gap-3 border-t lg:border-t-0 border-border pt-4 lg:pt-0">
-                                        <div className="flex items-center gap-2 mr-auto sm:mr-4">
-                                            <Badge variant={getStatusVariant(app.status)} className="capitalize px-3 py-1">
-                                                {app.status}
-                                            </Badge>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                                            {/* Resume Actions */}
-                                            {getResumeUrl(app) && (
-                                                <>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => handleViewResume(app)}
-                                                        title="View Resume"
-                                                        className="text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                                    >
-                                                        <FileText className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
-                                                        onClick={() => handleDownloadResume(app, app.applicant?.fullname)}
-                                                        title="Download Resume"
-                                                        className="text-muted-foreground hover:text-blue-400 hover:bg-blue-400/10"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                    </Button>
-                                                </>
-                                            )}
-
-                                            {/* Status Actions */}
-                                            {app.status !== 'shortlisted' && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
-                                                    title="Accept / Shortlist"
-                                                    className="text-muted-foreground hover:text-green-400 hover:bg-green-400/10"
-                                                >
-                                                    <Check className="w-4 h-4" />
-                                                </Button>
-                                            )}
-                                            
-                                            {app.status !== 'rejected' && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    onClick={() => handleUpdateStatus(app._id, 'rejected')}
-                                                    title="Reject"
-                                                    className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </Button>
-                                            )}
-
-                                            {/* Chat Action */}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleStartChat(app.applicant._id)}
-                                                title="Message Candidate"
-                                                className="text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                            >
-                                                <MessageSquare className="w-4 h-4" />
-                                            </Button>
-                                            
-                                            {/* Profile Action */}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => navigate(`/candidate/${app.applicant._id}`)}
-                                                title="View Profile"
-                                                className="text-muted-foreground hover:text-accent hover:bg-accent/10"
-                                            >
-                                                <User className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
+                                    </motion.div>
+                                );
+                            })
                         )}
                     </div>
                 </div>

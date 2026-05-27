@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, ArrowLeft } from "lucide-react";
+import { Search, ArrowLeft, Mail, Phone, Clock, ChevronDown, ChevronUp, Briefcase, Sparkles, Trophy, Calendar, Eye } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import SectionHeader from "@/components/common/SectionHeader";
 import EmptyState from "@/components/common/EmptyState";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api";
+import MatchSkillsDisplay from "@/components/recruitment/MatchSkillsDisplay";
 
 const ATS_STATUSES = ["applied", "shortlisted", "interview", "hired", "rejected"];
 
@@ -59,6 +60,10 @@ const AdminApplicants = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCardIds, setExpandedCardIds] = useState({});
+  const toggleExpand = (appId) => {
+    setExpandedCardIds(prev => ({ ...prev, [appId]: !prev[appId] }));
+  };
 
   const fetchApplications = useCallback(async () => {
     try {
@@ -179,51 +184,170 @@ const AdminApplicants = () => {
               visibleApplications.map((app, index) => {
                 const applicant = app.applicant || app.candidate;
                 const job = app.job;
+
+                const isExpanded = !!expandedCardIds[app._id];
+                const isRejected = app.status === 'rejected';
+                const isHired = app.status === 'hired';
+
+                const statusRingColor = 
+                    app.status === 'shortlisted' ? 'ring-2 ring-emerald-500' :
+                    app.status === 'interview' ? 'ring-2 ring-indigo-500' :
+                    app.status === 'hired' ? 'ring-2 ring-accent' :
+                    app.status === 'rejected' ? 'ring-2 ring-red-500/40' : 'ring-1 ring-border';
+
+                const latestRole = app.candidateProfile?.headline || applicant?.profile?.headline || (app.candidateProfile?.experience?.[0] ? `${app.candidateProfile.experience[0].title} at ${app.candidateProfile.experience[0].company}` : "Candidate Profile");
+
                 return (
                   <motion.div
                     key={app._id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    onClick={() => navigate(`/candidate/${applicant?._id}`, { state: { jobId: job?._id, applicationId: app?._id } })}
-                    className="group grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 bg-surface/60 border border-border rounded-2xl hover:border-accent/20 hover:bg-surface backdrop-blur-sm transition-all cursor-pointer"
+                    className={`group flex flex-col p-5 bg-surface/50 border rounded-2xl transition-all ${
+                        isRejected ? 'opacity-65 border-border/40' : 
+                        isHired ? 'border-accent/40 shadow-[0_0_15px_rgba(0,255,136,0.05)]' : 
+                        'border-border hover:border-accent/20 hover:bg-surface'
+                    }`}
                   >
-                    <div className="col-span-1 lg:col-span-5 flex items-center gap-4">
-                      <Avatar className="w-14 h-14 border border-border bg-surface-elevated">
-                        <AvatarImage src={applicant?.profile?.profilePhoto} />
-                      </Avatar>
-                      <div className="min-w-0">
-                        <h4 className="font-display font-semibold text-lg text-foreground group-hover:text-accent transition-colors truncate">
-                          {applicant?.fullname || "Candidate"}
-                        </h4>
-                        <p className="text-sm text-muted-foreground truncate">{applicant?.email || ""}</p>
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
-                          {job?.title ? job.title : "Job"} {job?.company?.name ? `· ${job.company.name}` : ""}
-                        </p>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                      {/* Zone 1: Candidate Identity */}
+                      <div 
+                        className="col-span-1 lg:col-span-5 flex items-center gap-4 cursor-pointer"
+                        onClick={() => navigate(`/candidate/${applicant?._id}`, { state: { jobId: job?._id, applicationId: app?._id } })}
+                      >
+                        <Avatar className={`w-14 h-14 ${statusRingColor} bg-surface-elevated`}>
+                          <AvatarImage src={applicant?.profile?.profilePhoto} />
+                        </Avatar>
+                        <div className="min-w-0">
+                          <h4 className="font-display font-semibold text-base text-foreground group-hover:text-accent transition-colors truncate">
+                            {applicant?.fullname || "Candidate"}
+                          </h4>
+                          <p className="text-xs text-accent mt-0.5 truncate font-medium">
+                            {latestRole}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                            💼 {job?.title ? job.title : "Job"} {job?.company?.name ? `· ${job.company.name}` : ""}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+                            <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-muted-foreground" /> {applicant?.email}</span>
+                            {applicant?.profile?.phoneNumber && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-muted-foreground" /> {applicant?.profile?.phoneNumber}</span>}
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="col-span-1 lg:col-span-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-6">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={statusBadgeVariant(app.status)} className="capitalize px-3 py-1">
+                      {/* Zone 2: ATS Intelligence */}
+                      <div className="col-span-1 lg:col-span-4 flex flex-col gap-1.5 border-t lg:border-t-0 lg:border-l border-border/80 pt-4 lg:pt-0 lg:pl-6 h-full justify-center">
+                        <div className="flex flex-wrap items-center gap-3">
+                          {typeof app.atsScore === "number" && (
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">ATS:</span>
+                              <span className={`text-sm font-bold ${app.atsScore >= 75 ? 'text-[#00ff88]' : app.atsScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                {app.atsScore}%
+                              </span>
+                            </div>
+                          )}
+                          {typeof app.matchScore === "number" && (
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Match:</span>
+                              <span className={`text-sm font-bold ${app.matchScore >= 75 ? 'text-[#00ff88]' : app.matchScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                {app.matchScore}%
+                              </span>
+                            </div>
+                          )}
+                          {app.aiRanking && (
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0.2 border-none ${
+                                app.aiRanking === 'Highly Recommended' ? 'bg-[#00ff88]/10 text-[#00ff88]' :
+                                app.aiRanking === 'Recommended' ? 'bg-emerald-500/5 text-emerald-400/80' :
+                                app.aiRanking === 'Average Fit' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
+                            }`}>
+                                {app.aiRanking}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => { e.stopPropagation(); toggleExpand(app._id); }} 
+                          className="text-accent hover:text-accent hover:bg-accent/10 mt-1 flex items-center gap-1 text-xs py-1 px-2 h-7 w-fit rounded-lg border border-accent/10 hover:border-accent/30"
+                        >
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          <span>{isExpanded ? 'Hide Details' : 'Show Details'}</span>
+                        </Button>
+                      </div>
+
+                      {/* Zone 3: Actions Info */}
+                      <div className="col-span-1 lg:col-span-3 flex flex-col sm:flex-row items-center justify-end gap-3 border-t lg:border-t-0 border-border/80 pt-4 lg:pt-0 pl-0 lg:pl-6">
+                        <Badge variant={statusBadgeVariant(app.status)} className="capitalize px-3 py-1.5 text-xs font-semibold mr-auto lg:mr-2">
                           {statusLabel(app.status)}
                         </Badge>
-                        {typeof app.atsScore === "number" && (
-                          <Badge variant="outline" className="px-3 py-1">
-                            ATS {app.atsScore}%
-                          </Badge>
-                        )}
-                        {typeof app.matchScore === "number" && (
-                          <Badge variant="outline" className="px-3 py-1">
-                            Match {app.matchScore}%
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-muted-foreground">
-                        Click to open profile
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/candidate/${applicant?._id}`, { state: { jobId: job?._id, applicationId: app?._id } })}
+                          className="text-xs py-1 h-8 px-2.5 rounded-lg flex items-center gap-1 font-medium border border-border/60 hover:text-accent hover:border-accent/30"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Profile
+                        </Button>
                       </div>
                     </div>
+
+                    {/* Drawer Section — Collapsible details */}
+                    {isExpanded && (
+                      <div className="mt-4 pt-4 border-t border-border/60 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-foreground">
+                        {/* Expanded Column 1: Skills & AI Summary */}
+                        <div className="space-y-4">
+                          {app.aiEvaluationSummary && (
+                            <div>
+                              <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-accent" /> AI Insights Summary
+                              </h5>
+                              <p className="text-xs text-muted-foreground leading-relaxed bg-surface-elevated/40 border border-border/40 p-2.5 rounded-lg">
+                                "{app.aiEvaluationSummary}"
+                              </p>
+                            </div>
+                          )}
+
+                          <MatchSkillsDisplay
+                            matchScore={app.matchScore}
+                            matchedSkills={app.matchedSkills}
+                            missingSkills={app.missingSkills}
+                            compact
+                          />
+                        </div>
+
+                        {/* Expanded Column 2: Work Experience */}
+                        <div className="border-t md:border-t-0 md:border-l border-border/60 pt-4 md:pt-0 md:pl-6 space-y-4">
+                          <div>
+                            <h5 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                              <Briefcase className="w-3 h-3 text-accent" /> Work History
+                            </h5>
+                            {app.candidateProfile?.experience?.length > 0 ? (
+                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                {app.candidateProfile.experience.map((exp, idx) => (
+                                  <div key={idx} className="p-2 border border-border/40 bg-surface-elevated/30 rounded-lg text-xs">
+                                    <div className="flex justify-between items-start font-medium text-foreground">
+                                      <span>{exp.title}</span>
+                                      <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">
+                                        {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                                      </span>
+                                    </div>
+                                    <div className="text-accent mt-0.5">{exp.company}</div>
+                                    {exp.responsibilities && (
+                                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                        {exp.responsibilities}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">No professional work history specified.</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })
