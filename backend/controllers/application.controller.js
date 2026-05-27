@@ -17,6 +17,55 @@ import { jobApplicationMatch } from "../utils/jobApplicantCounts.js";
 
 import mongoose from "mongoose";
 
+const CANONICAL_ATS_STATUSES = ["applied", "shortlisted", "interview", "hired", "rejected"];
+
+// Canonical status for API querying + UI display.
+// Note: DB persisted values still use legacy variants like
+// "interview scheduled" and "interview completed".
+const toCanonicalAtsStatus = (value) => {
+    const s = String(value || "").trim().toLowerCase();
+    if (!s) return "applied";
+    if (CANONICAL_ATS_STATUSES.includes(s)) return s;
+
+    // Legacy / verbose statuses → canonical
+    if (s === "under review") return "applied";
+    if (s === "interview scheduled" || s === "interview completed") return "interview";
+    return s; // keep unknowns as-is (will be rejected on updates)
+};
+
+const buildCanonicalStatusQuery = (status) => {
+    const canonical = toCanonicalAtsStatus(status);
+    if (!CANONICAL_ATS_STATUSES.includes(canonical)) {
+        throw new ApiError(400, "Invalid status value");
+    }
+    // Match canonical + legacy values that should map to it (for existing data)
+    if (canonical === "interview") {
+        return { $in: ["interview", "interview scheduled", "interview completed"] };
+    }
+    if (canonical === "applied") {
+        return { $in: ["applied", "under review"] };
+    }
+    return canonical;
+};
+
+const toPersistedAtsStatus = ({ requestedStatus, canonicalStatus, currentPersistedStatus }) => {
+    const requested = String(requestedStatus || "").trim().toLowerCase();
+    const current = String(currentPersistedStatus || "").trim().toLowerCase();
+
+    // Preserve legacy interview completion if caller explicitly requests it.
+    if (requested === "interview completed") return "interview completed";
+    if (requested === "interview scheduled") return "interview scheduled";
+
+    // If caller uses canonical "interview", preserve current interview stage when possible.
+    if (canonicalStatus === "interview") {
+        if (current === "interview completed") return "interview completed";
+        return "interview scheduled";
+    }
+
+    // For the other pipeline stages, canonical values are already persisted enums.
+    return canonicalStatus;
+};
+
 const canManageApplication = (job, user) =>
     user?.role === "admin" ||
     String(job.created_by) === String(user?.id) ||
@@ -209,9 +258,43 @@ export const getApplicationsWithProfiles = async (query, skip = 0, limit = 100, 
         if (!doc.candidateProfile && candidateUser && candidateUser.profile) {
             doc.candidateProfile = candidateUser.profile;
         }
+
+        // Normalize ATS statuses at the API boundary (keeps UI consistent)
+        doc.status = toCanonicalAtsStatus(doc.status);
+        if (doc.applicationStatus) {
+            doc.applicationStatus = toCanonicalAtsStatus(doc.applicationStatus);
+        }
         return doc;
     });
 };
+
+export const getAllApplications = asyncHandler(async (req, res) => {
+    const userId = req.user?.id || req.id;
+    const { page, limit, skip } = getPagination(req.query);
+    const { status } = req.query;
+
+    const query = {};
+    if (req.user?.role !== "admin") {
+        query.$or = [{ recruiterId: userId }, { recruiter: userId }];
+    }
+    if (status) {
+        query.status = buildCanonicalStatusQuery(status);
+    }
+
+    const totalApplications = await Application.countDocuments(query);
+    const applications = await getApplicationsWithProfiles(query, skip, limit, "createdAt");
+
+    return sendSuccess(
+        res,
+        200,
+        {
+            applications,
+            pagination: buildPaginationMeta(totalApplications, page, limit),
+        },
+        "Applications fetched successfully",
+        { applications }
+    );
+});
 
 export const getApplicants = asyncHandler(async (req, res) => {
     const jobId = req.params.id;
@@ -367,40 +450,44 @@ export const updateStatus = asyncHandler(async (req, res) => {
         throw new ApiError(403, "You do not own this job");
     }
 
-    const normalizedStatus = String(status).toLowerCase();
-    const validStatuses = [
-        "applied",
-        "under review",
-        "shortlisted",
-        "interview scheduled",
-        "interview completed",
-        "rejected",
-        "hired",
-    ];
-    if (!validStatuses.includes(normalizedStatus)) {
+    const canonicalRequestedStatus = toCanonicalAtsStatus(status);
+    if (!CANONICAL_ATS_STATUSES.includes(canonicalRequestedStatus)) {
         throw new ApiError(400, "Invalid status value");
     }
 
     const currentStatus = application.status;
+    const canonicalCurrentStatus = toCanonicalAtsStatus(currentStatus);
+    const requestedLower = String(status || "").trim().toLowerCase();
+    const currentLower = String(currentStatus || "").trim().toLowerCase();
+
+    const isInterviewScheduledToCompleted =
+        canonicalCurrentStatus === "interview" &&
+        canonicalRequestedStatus === "interview" &&
+        currentLower === "interview scheduled" &&
+        requestedLower === "interview completed";
+
     const transitions = {
-        applied: ["under review", "shortlisted", "rejected", "interview scheduled"],
-        "under review": ["shortlisted", "rejected", "interview scheduled"],
-        shortlisted: ["rejected", "interview scheduled", "hired"],
-        "interview scheduled": ["interview completed", "hired", "rejected", "shortlisted"],
-        "interview completed": ["hired", "rejected"],
+        applied: ["shortlisted", "rejected", "interview"],
+        shortlisted: ["rejected", "interview", "hired"],
+        interview: ["hired", "rejected", "shortlisted"],
         rejected: [],
         hired: [],
     };
 
-    if (currentStatus === normalizedStatus) {
+    if (canonicalCurrentStatus === canonicalRequestedStatus && !isInterviewScheduledToCompleted) {
         throw new ApiError(400, `Application is already ${currentStatus}`);
     }
 
-    if (!transitions[currentStatus]?.includes(normalizedStatus)) {
-        throw new ApiError(400, `Cannot transition from ${currentStatus} to ${normalizedStatus}`);
+    if (!isInterviewScheduledToCompleted && !transitions[canonicalCurrentStatus]?.includes(canonicalRequestedStatus)) {
+        throw new ApiError(400, `Cannot transition from ${canonicalCurrentStatus} to ${canonicalRequestedStatus}`);
     }
 
-    application.status = normalizedStatus;
+    application.status = toPersistedAtsStatus({
+        requestedStatus: status,
+        canonicalStatus: canonicalRequestedStatus,
+        currentPersistedStatus: application.status,
+    });
+    application.applicationStatus = application.status;
     await application.save();
 
     return sendSuccess(

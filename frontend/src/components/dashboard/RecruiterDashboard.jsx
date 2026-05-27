@@ -25,15 +25,14 @@ const RecruiterDashboard = () => {
         null
     );
     const topJobId = topJob ? toMongoIdString(topJob._id) : null;
-    const applicantsDestination = topJobId ? `/admin/jobs/${topJobId}/applicants` : '/admin/jobs';
 
     const stats = [
         { label: "Posted Jobs", value: adminJobs.length, icon: Briefcase, destination: '/admin/jobs' },
-        { label: "Total Applicants", value: totalApplicants, icon: Users, destination: applicantsDestination },
-        { label: "Shortlisted", value: metrics.shortlisted ?? 0, icon: UserCheck, destination: applicantsDestination },
-        { label: "Interviews", value: metrics.interviewsScheduled ?? 0, icon: Calendar, destination: applicantsDestination },
-        { label: "Hired", value: metrics.hired ?? 0, icon: Trophy, destination: applicantsDestination },
-        { label: "Rejected", value: metrics.rejected ?? 0, icon: UserX, destination: applicantsDestination },
+        { label: "Total Applicants", value: totalApplicants, icon: Users, destination: '/admin/applicants' },
+        { label: "Shortlisted", value: metrics.shortlisted ?? 0, icon: UserCheck, destination: '/admin/applicants?status=shortlisted' },
+        { label: "Interviews", value: metrics.interviewsScheduled ?? 0, icon: Calendar, destination: '/admin/applicants?status=interview' },
+        { label: "Hired", value: metrics.hired ?? 0, icon: Trophy, destination: '/admin/applicants?status=hired' },
+        { label: "Rejected", value: metrics.rejected ?? 0, icon: UserX, destination: '/admin/applicants?status=rejected' },
         { label: "Companies", value: user?.companies?.length || 0, icon: Building2, destination: '/admin/companies' },
     ];
 

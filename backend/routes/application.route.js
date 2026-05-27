@@ -3,6 +3,7 @@ import isAuthenticated from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
 import {
     applyJob,
+    getAllApplications,
     getApplicants,
     getAppliedJobs,
     updateStatus,
@@ -16,6 +17,11 @@ import {
 } from "../middlewares/validation.middleware.js";
 
 const router = express.Router();
+
+// Recruiter / Admin: list applications across jobs (optional status filter)
+// Supports: GET /api/v1/application?status=shortlisted
+// Also available at: GET /api/applications?status=shortlisted
+router.route("/").get(isAuthenticated, authorizeRoles("recruiter", "admin"), getAllApplications);
 
 // Candidate: apply for a job (POST only)
 router.route("/apply/:id").post(
