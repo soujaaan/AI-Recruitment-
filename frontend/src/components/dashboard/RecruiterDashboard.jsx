@@ -20,14 +20,21 @@ const RecruiterDashboard = () => {
         metrics.totalApplicants ??
         adminJobs.reduce((acc, job) => acc + (job.applicantCount ?? 0), 0);
 
+    const topJob = adminJobs.reduce(
+        (best, job) => ((job?.applicantCount ?? 0) > (best?.applicantCount ?? 0) ? job : best),
+        null
+    );
+    const topJobId = topJob ? toMongoIdString(topJob._id) : null;
+    const applicantsDestination = topJobId ? `/admin/jobs/${topJobId}/applicants` : '/admin/jobs';
+
     const stats = [
-        { label: "Posted Jobs", value: adminJobs.length, icon: Briefcase },
-        { label: "Total Applicants", value: totalApplicants, icon: Users },
-        { label: "Shortlisted", value: metrics.shortlisted ?? 0, icon: UserCheck },
-        { label: "Interviews", value: metrics.interviewsScheduled ?? 0, icon: Calendar },
-        { label: "Hired", value: metrics.hired ?? 0, icon: Trophy },
-        { label: "Rejected", value: metrics.rejected ?? 0, icon: UserX },
-        { label: "Companies", value: user?.companies?.length || 0, icon: Building2 },
+        { label: "Posted Jobs", value: adminJobs.length, icon: Briefcase, destination: '/admin/jobs' },
+        { label: "Total Applicants", value: totalApplicants, icon: Users, destination: applicantsDestination },
+        { label: "Shortlisted", value: metrics.shortlisted ?? 0, icon: UserCheck, destination: applicantsDestination },
+        { label: "Interviews", value: metrics.interviewsScheduled ?? 0, icon: Calendar, destination: applicantsDestination },
+        { label: "Hired", value: metrics.hired ?? 0, icon: Trophy, destination: applicantsDestination },
+        { label: "Rejected", value: metrics.rejected ?? 0, icon: UserX, destination: applicantsDestination },
+        { label: "Companies", value: user?.companies?.length || 0, icon: Building2, destination: '/admin/companies' },
     ];
 
     return (
@@ -40,15 +47,67 @@ const RecruiterDashboard = () => {
                 />
 
                 {/* Stats */}
-                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
                     {stats.map((stat, index) => (
-                        <GlassCard key={index} animate delay={index * 0.1} className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                                <stat.icon className="w-5 h-5 text-accent" />
+                        <GlassCard
+                            key={index}
+                            hover={false}
+                            animate
+                            delay={index * 0.1}
+                            role="link"
+                            tabIndex={0}
+                            aria-label={`${stat.label}: ${stat.value}`}
+                            onClick={() => navigate(stat.destination)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    navigate(stat.destination);
+                                }
+                            }}
+                            className="group h-full flex flex-col justify-between gap-6 cursor-pointer bg-surface/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-0 transition-all duration-300 hover:border-accent/40 hover:shadow-[0_0_28px_rgba(0,255,136,0.18)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_0_22px_rgba(0,255,136,0.16)]"
+                        >
+                            {/* Hover glow layer */}
+                            <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div className="absolute -inset-8 bg-gradient-to-br from-accent/12 via-accent/0 to-transparent blur-2xl" />
                             </div>
-                            <div>
-                                <p className="font-display font-bold text-2xl text-foreground">{stat.value}</p>
-                                <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className={`h-1.5 w-1.5 rounded-full ${Number(stat.value) > 0 ? 'bg-accent animate-pulse' : 'bg-accent/30'}`}
+                                        />
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{stat.label}</p>
+                                    </div>
+                                </div>
+
+                                <ArrowRight
+                                    className="w-4 h-4 text-muted-foreground opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                                    aria-hidden="true"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="relative w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center transition-transform duration-300 group-hover:translate-y-[-2px]">
+                                    <stat.icon className="w-5 h-5 text-accent" />
+                                </div>
+
+                                <div className="text-right">
+                                    <p className="font-display font-bold text-3xl text-foreground tabular-nums leading-none">
+                                        {stat.value}
+                                    </p>
+                                    <p className="mt-2 text-[11px] text-muted-foreground">
+                                        {Number(stat.value) > 0 ? 'Review in ATS' : 'Start managing'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                <span className="inline-flex items-center gap-2">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-accent/60" />
+                                    {stat.label === 'Posted Jobs' ? 'Recruit faster' : 'Actionable insights'}
+                                </span>
+                                <span className="text-accent/90 font-medium uppercase tracking-wider">Open</span>
                             </div>
                         </GlassCard>
                     ))}

@@ -5,6 +5,7 @@ import {
     scheduleInterview,
     getMyInterviews,
     getJobInterviews,
+    getMeetingLink,
 } from "../controllers/interview.controller.js";
 
 const router = express.Router();
@@ -28,6 +29,12 @@ router.get(
     isAuthenticated,
     authorizeRoles("recruiter", "admin"),
     getJobInterviews
+);
+
+router.get(
+    "/:id/meeting-link",
+    isAuthenticated,
+    getMeetingLink
 );
 
 export default router;

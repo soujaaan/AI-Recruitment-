@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Navbar from '@/components/shared/Navbar'
 import SectionHeader from '@/components/common/SectionHeader'
 import GlassCard from '@/components/common/GlassCard'
@@ -41,8 +41,29 @@ const ApplicationsPage = () => {
     const [interviews, setInterviews] = useState([]);
 
     useEffect(() => {
-        interviewService.getMyInterviews().then(setInterviews).catch(() => setInterviews([]));
+        interviewService
+            .getMyInterviews()
+            .then(setInterviews)
+            .catch(() => setInterviews([]));
     }, []);
+
+    const formatCountdown = (target) => {
+        const now = Date.now();
+        const diffMs = new Date(target).getTime() - now;
+        if (diffMs <= 0) return 'Starting soon';
+        const totalMinutes = Math.floor(diffMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours <= 0) return `Available in ${minutes}m`;
+        return `Available in ${hours}h ${minutes}m`;
+    };
+
+    const getMeetingState = (iv) => {
+        const state = iv?.meetingAccess?.state;
+        if (state === 'active') return 'active';
+        if (state === 'expired') return 'expired';
+        return 'locked';
+    };
 
     const stats = [
         { label: 'Total', value: allAppliedJobs.length, color: 'text-foreground' },
@@ -79,32 +100,68 @@ const ApplicationsPage = () => {
                         <div className="mt-12">
                             <p className="section-label mb-6">02 — Upcoming Interviews</p>
                             <div className="space-y-3">
-                                {interviews.map((iv) => (
-                                    <GlassCard key={iv._id} className="p-5">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                            <div>
-                                                <h4 className="font-display font-semibold text-foreground flex items-center gap-2">
-                                                    <Video className="w-4 h-4 text-blue-400" />
-                                                    {iv.job?.title}
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground mt-1">
-                                                    {new Date(iv.scheduledAt).toLocaleString()} · {iv.job?.company?.name}
-                                                </p>
-                                                {iv.notes && <p className="text-xs text-muted-foreground mt-2">{iv.notes}</p>}
+                                {interviews.map((iv) => {
+                                    const state = getMeetingState(iv);
+                                    const isActive = state === 'active';
+                                    const isLocked = state === 'locked';
+                                    const isExpired = state === 'expired';
+
+                                    let label = 'Join Meeting';
+                                    if (isLocked) {
+                                        label = iv.meetingAccess?.startsAt
+                                            ? formatCountdown(iv.meetingAccess.startsAt)
+                                            : 'Opens 1 hour before interview';
+                                    } else if (isExpired) {
+                                        label = 'Meeting Ended';
+                                    }
+
+                                    return (
+                                        <GlassCard key={iv._id} className="p-5">
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                                <div>
+                                                    <h4 className="font-display font-semibold text-foreground flex items-center gap-2">
+                                                        <Video className="w-4 h-4 text-blue-400" />
+                                                        {iv.job?.title}
+                                                    </h4>
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        {new Date(iv.scheduledAt).toLocaleString()} · {iv.job?.company?.name}
+                                                    </p>
+                                                    {iv.notes && <p className="text-xs text-muted-foreground mt-2">{iv.notes}</p>}
+                                                </div>
+                                                {iv.meetingLink && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={!isActive}
+                                                        onClick={async () => {
+                                                            try {
+                                                                const link = await interviewService.getMeetingLink(iv._id);
+                                                                if (link) {
+                                                                    window.open(link, '_blank', 'noopener,noreferrer');
+                                                                }
+                                                            } catch (err) {
+                                                                // fallback to browser alert to avoid new dependency
+                                                                // eslint-disable-next-line no-alert
+                                                                alert(err.message || 'Unable to join meeting right now.');
+                                                            }
+                                                        }}
+                                                        className={`inline-flex items-center justify-center min-w-[140px] px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            isActive
+                                                                ? 'btn-neon'
+                                                                : isExpired
+                                                                ? 'border border-border/70 bg-surface/40 text-xs text-muted-foreground cursor-default'
+                                                                : 'border border-border/60 bg-surface/40 text-xs text-muted-foreground cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        {isActive && (
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] mr-2 animate-pulse" />
+                                                        )}
+                                                        {label}
+                                                    </button>
+                                                )}
                                             </div>
-                                            {iv.meetingLink && (
-                                                <a
-                                                    href={iv.meetingLink}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="btn-neon-outline px-4 py-2 rounded-lg text-sm text-center"
-                                                >
-                                                    Join Meeting
-                                                </a>
-                                            )}
-                                        </div>
-                                    </GlassCard>
-                                ))}
+                                        </GlassCard>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

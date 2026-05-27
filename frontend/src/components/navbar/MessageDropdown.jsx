@@ -17,6 +17,14 @@ const MessageDropdown = ({ onClose }) => {
   const onlineSet = useMemo(() => new Set((onlineUsers || []).map(String)), [onlineUsers]);
   const user = useSelector((store) => store.auth.user);
 
+  const totalUnread = useMemo(() => {
+    if (!recentRooms?.length || !user?._id) return 0;
+    return recentRooms.reduce(
+      (sum, room) => sum + (room?.unreadCounts?.[user._id] || 0),
+      0
+    );
+  }, [recentRooms, user?._id]);
+
   useEffect(() => {
     const onEsc = (e) => {
       if (e.key === "Escape") onClose?.();
@@ -39,21 +47,40 @@ const MessageDropdown = ({ onClose }) => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
-        className="absolute right-0 mt-3 w-[420px] max-w-[90vw] bg-surface border-border rounded-2xl shadow-[0_0_40px_rgba(0,255,136,0.12)] overflow-hidden"
+        className="absolute right-0 mt-3 w-[360px] max-w-[92vw] rounded-2xl border border-border/70 bg-[#050505]/95 backdrop-blur-xl shadow-[0_18px_40px_rgba(0,0,0,0.65)] overflow-hidden"
       >
-        <div className="p-3 border-b border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <MessageSquareMore className="w-4 h-4 text-[#00ff88]" />
-              <span className="font-semibold text-foreground">Messages</span>
+        <div className="px-3.5 py-3 border-b border-border/70 bg-gradient-to-b from-white/3 to-transparent">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-xl bg-surface/80 border border-border/80 flex items-center justify-center shadow-[0_0_0_1px_rgba(0,255,136,0.18)]">
+                <MessageSquareMore className="w-3.5 h-3.5 text-[#00ff88]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold tracking-wide text-muted-foreground/80 uppercase">
+                  Inbox
+                </span>
+                <span className="text-[13px] font-medium text-foreground">
+                  Conversations
+                </span>
+              </div>
             </div>
-            <span className="text-xs text-muted-foreground">Real-time</span>
+            <div className="flex items-center gap-1.5">
+              {totalUnread > 0 && (
+                <span className="inline-flex items-center rounded-full bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88]/40 px-2 py-0.5 text-[11px] font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] mr-1.5 animate-pulse" />
+                  {totalUnread > 99 ? "99+" : totalUnread} new
+                </span>
+              )}
+              <span className="text-[11px] text-muted-foreground">
+                Live sync
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="max-h-[420px] overflow-y-auto">
+        <div className="max-h-[380px] overflow-y-auto py-1">
           {recentRooms?.length ? (
-            <div>
+            <div className="divide-y divide-border/40">
               {recentRooms.map((room) => {
                 const otherUserIdOrObj = room.candidateId === user?._id ? room.recruiterId : room.candidateId;
 
@@ -85,30 +112,34 @@ const MessageDropdown = ({ onClose }) => {
               })}
             </div>
           ) : (
-            <div className="p-8 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 mx-auto flex items-center justify-center text-[#00ff88]">
-                <Inbox className="w-6 h-6" />
+            <div className="px-6 py-8 text-center text-sm">
+              <div className="w-12 h-12 rounded-2xl bg-surface/80 border border-border/80 mx-auto flex items-center justify-center text-[#00ff88] shadow-[0_0_18px_rgba(0,255,136,0.12)]">
+                <Inbox className="w-5 h-5" />
               </div>
-              <p className="mt-3 font-medium text-foreground">No conversations yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Your inbox will appear after an application chat starts.</p>
+              <p className="mt-3 font-medium text-foreground text-[13px]">
+                No conversations yet
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Your inbox preview will appear once a recruiter or candidate starts a chat.
+              </p>
             </div>
           )}
         </div>
 
-        <div className="p-3 border-t border-white/5 flex gap-2">
+        <div className="px-3.5 py-3 border-t border-border/70 bg-gradient-to-t from-white/3 to-transparent flex gap-2">
           <Button
-            className="flex-1 btn-neon-outline"
-            onClick={() => goToMessages(null)}
             variant="outline"
+            className="flex-1 h-8 rounded-lg border-border/80 bg-transparent text-[12px] text-muted-foreground hover:text-foreground hover:bg-surface/80"
+            onClick={() => goToMessages(null)}
           >
-            View All Messages
+            View All
           </Button>
           <Button
-            className="flex-1 btn-neon"
+            className="flex-1 h-8 rounded-lg btn-neon text-[12px] font-semibold"
             onClick={() => goToMessages(recentRooms?.[0]?._id || null)}
             disabled={!recentRooms?.length}
           >
-            Go to Inbox
+            Open Inbox
           </Button>
         </div>
       </motion.div>

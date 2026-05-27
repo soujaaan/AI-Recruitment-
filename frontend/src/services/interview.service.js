@@ -17,4 +17,12 @@ export const interviewService = {
             throw new Error(getApiErrorMessage(error));
         }
     },
+    async getMeetingLink(interviewId) {
+        try {
+            const res = await apiClient.get(`/api/interviews/${interviewId}/meeting-link`);
+            return res.data?.data?.meetingLink || res.data?.meetingLink || '';
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
 };

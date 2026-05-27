@@ -6,6 +6,21 @@ import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 
+const getMeetingAccessState = (schedule, now = new Date()) => {
+    const start = new Date(schedule.scheduledAt);
+    const durationMinutes = schedule.durationMinutes || 45;
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+    const windowStart = new Date(start.getTime() - 60 * 60 * 1000);
+
+    if (now < windowStart) {
+        return "locked";
+    }
+    if (now >= windowStart && now <= end) {
+        return "active";
+    }
+    return "expired";
+};
+
 const canManageJob = (job, user) =>
     user?.role === "admin" || String(job.created_by) === String(user?.id);
 
@@ -76,7 +91,20 @@ export const getMyInterviews = asyncHandler(async (req, res) => {
         .populate("recruiter", "fullname email")
         .lean();
 
-    return sendSuccess(res, 200, { schedules }, "Interviews fetched successfully");
+    const now = new Date();
+    const enhanced = schedules.map((s) => {
+        const accessState = getMeetingAccessState(s, now);
+        return {
+            ...s,
+            meetingAccess: {
+                state: accessState,
+                startsAt: s.scheduledAt,
+                durationMinutes: s.durationMinutes || 45,
+            },
+        };
+    });
+
+    return sendSuccess(res, 200, { schedules: enhanced }, "Interviews fetched successfully");
 });
 
 export const getJobInterviews = asyncHandler(async (req, res) => {
@@ -92,5 +120,57 @@ export const getJobInterviews = asyncHandler(async (req, res) => {
         .populate("candidate", "fullname email profile.profilePhoto")
         .lean();
 
-    return sendSuccess(res, 200, { schedules }, "Job interviews fetched successfully");
+    const now = new Date();
+    const enhanced = schedules.map((s) => {
+        const accessState = getMeetingAccessState(s, now);
+        return {
+            ...s,
+            meetingAccess: {
+                state: accessState,
+                startsAt: s.scheduledAt,
+                durationMinutes: s.durationMinutes || 45,
+            },
+        };
+    });
+
+    return sendSuccess(res, 200, { schedules: enhanced }, "Job interviews fetched successfully");
+});
+
+export const getMeetingLink = asyncHandler(async (req, res) => {
+    const userId = req.user?.id || req.id;
+    const { id } = req.params;
+
+    const schedule = await InterviewSchedule.findById(id).lean();
+    if (!schedule) {
+        throw new ApiError(404, "Interview not found");
+    }
+
+    const isCandidate = String(schedule.candidateId || schedule.candidate) === String(userId);
+    const isRecruiter = String(schedule.recruiterId || schedule.recruiter) === String(userId);
+
+    if (!isCandidate && !isRecruiter) {
+        throw new ApiError(403, "You are not allowed to access this meeting");
+    }
+
+    const accessState = getMeetingAccessState(schedule, new Date());
+
+    if (accessState === "locked") {
+        throw new ApiError(403, "Meeting is not yet open. Join is available 1 hour before start time.");
+    }
+
+    if (accessState === "expired") {
+        throw new ApiError(403, "Meeting has ended. Access is no longer available.");
+    }
+
+    const meetingLink = schedule.meetingLink || schedule.meetLink || "";
+    if (!meetingLink) {
+        throw new ApiError(400, "No meeting link configured for this interview");
+    }
+
+    return sendSuccess(
+        res,
+        200,
+        { meetingLink },
+        "Meeting link fetched successfully"
+    );
 });
