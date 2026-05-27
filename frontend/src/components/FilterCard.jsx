@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
+import { useSearchParams } from 'react-router-dom'
 import { setSearchedQuery } from '@/redux/jobSlice'
 import GlassCard from './common/GlassCard'
 import { SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { Button } from './ui/button'
 import useGetJobFilters from '@/hooks/useGetJobFilters'
+import { slugToFilterCategory } from '@/constants/roleCategories'
 
 const FILTER_SECTIONS = [
     { filterType: "Location", key: "location", optionsKey: "locations" },
@@ -25,9 +27,14 @@ const EMPTY_FILTERS = {
 const FilterCard = () => {
 
     const dispatch = useDispatch();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { data: filterOptions, isLoading } = useGetJobFilters();
+    const urlCategorySynced = useRef(false);
 
-    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [filters, setFilters] = useState(() => ({
+        ...EMPTY_FILTERS,
+        category: searchParams.get("category") || "",
+    }));
 
     const filterData = useMemo(() => {
         if (!filterOptions) return [];
@@ -53,8 +60,39 @@ const FilterCard = () => {
     };
 
     useEffect(() => {
+        const urlCategory = searchParams.get("category") || "";
+        if (!urlCategory || urlCategorySynced.current || !filterOptions?.categories) {
+            return;
+        }
+
+        const mapped = slugToFilterCategory(urlCategory, filterOptions.categories);
+        setFilters((prev) => ({
+            ...prev,
+            category: mapped || urlCategory,
+        }));
+        urlCategorySynced.current = true;
+    }, [filterOptions?.categories, searchParams]);
+
+    useEffect(() => {
         dispatch(setSearchedQuery(filters));
     }, [filters, dispatch]);
+
+    useEffect(() => {
+        const urlCategory = searchParams.get("category") || "";
+        const nextCategory = filters.category || "";
+
+        if (urlCategory === nextCategory) {
+            return;
+        }
+
+        const params = new URLSearchParams(searchParams);
+        if (nextCategory) {
+            params.set("category", nextCategory);
+        } else {
+            params.delete("category");
+        }
+        setSearchParams(params, { replace: true });
+    }, [filters.category, searchParams, setSearchParams]);
 
     const activeFiltersCount = Object.values(filters)
         .filter(Boolean)

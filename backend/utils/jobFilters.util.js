@@ -1,4 +1,5 @@
 import { Job } from "../models/job.model.js";
+import { buildCategoryQuery } from "./categoryFilter.util.js";
 
 const sortAlpha = (arr) => [...arr].sort((a, b) => String(a).localeCompare(String(b)));
 
@@ -32,7 +33,10 @@ export const buildPublicJobQuery = (filters = {}) => {
     }
 
     if (filters.category && filters.category !== "All") {
-        query["aiMetadata.category"] = String(filters.category).trim();
+        const categoryQuery = buildCategoryQuery(filters.category);
+        if (categoryQuery) {
+            query.$and = [...(query.$and || []), categoryQuery];
+        }
     }
 
     return { query, searchTerm };

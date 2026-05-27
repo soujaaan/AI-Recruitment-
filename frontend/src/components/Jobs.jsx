@@ -4,19 +4,28 @@ import FilterCard from './FilterCard'
 import Job from './Job'
 import { useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
+import { useSearchParams } from 'react-router-dom'
 import SectionHeader from './common/SectionHeader'
 import EmptyState from './common/EmptyState'
 import Pagination from './common/Pagination'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
 import { Search, Sparkles } from 'lucide-react'
 import { Input } from './ui/input'
+import { ROLE_CATEGORIES } from '@/constants/roleCategories'
 
 const Jobs = () => {
     const { allJobs, jobPagination, searchedQuery, personalized } = useSelector(store => store.job);
+    const [searchParams] = useSearchParams();
+    const urlCategory = searchParams.get("category") || "";
 
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
     const [page, setPage] = useState(1);
+
+    const activeCategoryLabel = useMemo(() => {
+        if (!urlCategory) return null;
+        return ROLE_CATEGORIES.find((r) => r.slug === urlCategory)?.label || urlCategory;
+    }, [urlCategory]);
 
     const jobParams = useMemo(() => {
         const params = {
@@ -30,12 +39,22 @@ const Jobs = () => {
 
         if (searchedQuery && typeof searchedQuery === "object") {
             Object.entries(searchedQuery).forEach(([key, value]) => {
-                if (value) params[key] = value;
+                if (value && key !== "category") {
+                    params[key] = value;
+                }
             });
         }
 
+        const category =
+            urlCategory ||
+            (typeof searchedQuery === "object" && searchedQuery?.category) ||
+            "";
+        if (category) {
+            params.category = category;
+        }
+
         return params;
-    }, [page, debouncedQuery, searchedQuery]);
+    }, [page, debouncedQuery, searchedQuery, urlCategory]);
 
     useGetAllJobs(jobParams);
 
@@ -50,7 +69,7 @@ const Jobs = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [searchedQuery]);
+    }, [searchedQuery, urlCategory]);
 
     const subtitle = personalized
         ? "AI-ranked openings matched to your skills, experience, and preferences."
@@ -92,12 +111,20 @@ const Jobs = () => {
                             subtitle={subtitle}
                         />
 
-                        {personalized && (
-                            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium text-accent">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                Personalized for you
-                            </div>
-                        )}
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                            {personalized && (
+                                <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium text-accent">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Personalized for you
+                                </div>
+                            )}
+                            {activeCategoryLabel && (
+                                <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                                    Filtering:
+                                    <span className="text-accent">{activeCategoryLabel}</span>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="mt-6 max-w-2xl">
 

@@ -11,6 +11,13 @@ import { authService } from '@/services/auth.service';
 import { setAuthState } from '@/redux/authSlice';
 import { toast } from 'sonner';
 
+const HERO_STATS = [
+    { value: "10K+", label: "Jobs" },
+    { value: "500+", label: "Companies" },
+    { value: "1M+", label: "Applications" },
+    { value: "98%", label: "Accuracy" },
+];
+
 const HeroSection = () => {
     // Search Bar logic
     const [query, setQuery] = useState("");
@@ -269,36 +276,32 @@ const HeroSection = () => {
                             </Button>
                         </div>
 
-                        {/* Stats Row - Visually compressed flat inline format */}
-                        <div className="
-                            flex
-                            flex-wrap
-                            items-center
-                            gap-x-5
-                            gap-y-1.5
-                            mt-8
-                            pt-5
-                            w-full
-                            max-w-[540px]
-                            border-t
-                            border-border/30
-                            text-[11px]
-                            text-muted-foreground
-                        ">
-                            <div className="flex items-center gap-1">
-                                <span className="font-bold text-accent text-xs">10K+</span> <span>Jobs</span>
-                            </div>
-                            <div className="w-1 h-1 rounded-full bg-border/60" />
-                            <div className="flex items-center gap-1">
-                                <span className="font-bold text-accent text-xs">500+</span> <span>Companies</span>
-                            </div>
-                            <div className="w-1 h-1 rounded-full bg-border/60" />
-                            <div className="flex items-center gap-1">
-                                <span className="font-bold text-accent text-xs">1M+</span> <span>Applications</span>
-                            </div>
-                            <div className="w-1 h-1 rounded-full bg-border/60" />
-                            <div className="flex items-center gap-1">
-                                <span className="font-bold text-accent text-xs">98%</span> <span>Accuracy</span>
+                        {/* Compact premium stat cards */}
+                        <div className="mt-7 w-full max-w-[540px]">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                {HERO_STATS.map((stat) => (
+                                    <div
+                                        key={stat.label}
+                                        className="
+                                            rounded-lg
+                                            border border-border/50
+                                            bg-[#0d0d0d]/50
+                                            backdrop-blur-md
+                                            px-2.5 py-2
+                                            text-center
+                                            shadow-[0_0_14px_rgba(0,255,136,0.07)]
+                                            transition-colors
+                                            hover:border-accent/25
+                                        "
+                                    >
+                                        <p className="text-base sm:text-lg font-bold text-accent leading-tight">
+                                            {stat.value}
+                                        </p>
+                                        <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">
+                                            {stat.label}
+                                        </p>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
