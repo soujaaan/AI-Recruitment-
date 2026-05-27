@@ -1,80 +1,61 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setSearchedQuery } from '@/redux/jobSlice'
 import GlassCard from './common/GlassCard'
 import { SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { Button } from './ui/button'
+import useGetJobFilters from '@/hooks/useGetJobFilters'
 
-const filterData = [
-    {
-        filterType: "Location",
-        key: "location",
-        array: [
-            "Delhi NCR",
-            "Bangalore",
-            "Hyderabad",
-            "Pune",
-            "Mumbai",
-            "Kolkata",
-            "Remote"
-        ]
-    },
-    {
-        filterType: "Job Type",
-        key: "jobType",
-        array: [
-            "Full-time",
-            "Part-time",
-            "Contract",
-            "Internship"
-        ]
-    },
-    {
-        filterType: "Salary",
-        key: "salary",
-        array: [
-            "0 - 5 LPA",
-            "5 - 10 LPA",
-            "10 - 20 LPA",
-            "20+ LPA"
-        ]
-    }
+const FILTER_SECTIONS = [
+    { filterType: "Location", key: "location", optionsKey: "locations" },
+    { filterType: "Job Type", key: "jobType", optionsKey: "jobTypes" },
+    { filterType: "Experience", key: "experienceLevel", optionsKey: "experienceLevels" },
+    { filterType: "Category", key: "category", optionsKey: "categories" },
+    { filterType: "Salary", key: "salary", optionsKey: "salaries" },
 ];
+
+const EMPTY_FILTERS = {
+    location: "",
+    jobType: "",
+    salary: "",
+    experienceLevel: "",
+    category: "",
+};
 
 const FilterCard = () => {
 
     const dispatch = useDispatch();
+    const { data: filterOptions, isLoading } = useGetJobFilters();
 
-    const [filters, setFilters] = useState({
-        location: "",
-        jobType: "",
-        salary: ""
-    });
+    const [filters, setFilters] = useState(EMPTY_FILTERS);
 
-    // Handle filter change
+    const filterData = useMemo(() => {
+        if (!filterOptions) return [];
+
+        return FILTER_SECTIONS
+            .map((section) => ({
+                filterType: section.filterType,
+                key: section.key,
+                array: filterOptions[section.optionsKey] || [],
+            }))
+            .filter((section) => section.array.length > 0);
+    }, [filterOptions]);
+
     const handleFilterChange = (type, value) => {
-
         setFilters((prev) => ({
             ...prev,
             [type]: prev[type] === value ? "" : value
         }));
     };
 
-    // Reset filters
     const resetFilters = () => {
-        setFilters({
-            location: "",
-            jobType: "",
-            salary: ""
-        });
+        setFilters(EMPTY_FILTERS);
     };
 
-    // Send filters to redux
     useEffect(() => {
         dispatch(setSearchedQuery(filters));
     }, [filters, dispatch]);
 
-    // Count active filters
     const activeFiltersCount = Object.values(filters)
         .filter(Boolean)
         .length;
@@ -82,7 +63,6 @@ const FilterCard = () => {
     return (
         <GlassCard animate>
 
-            {/* Header */}
             <div className="flex items-center justify-between mb-6">
 
                 <div className="flex items-center gap-2">
@@ -109,7 +89,6 @@ const FilterCard = () => {
 
                 </div>
 
-                {/* Reset Button */}
                 {activeFiltersCount > 0 && (
                     <Button
                         variant="ghost"
@@ -128,14 +107,24 @@ const FilterCard = () => {
 
             </div>
 
-            {/* Filters */}
             <div className="space-y-5">
 
-                {filterData.map((data, index) => (
+                {isLoading && (
+                    <p className="text-sm text-muted-foreground">
+                        Loading filters…
+                    </p>
+                )}
 
-                    <div key={index}>
+                {!isLoading && filterData.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                        No filter options available yet.
+                    </p>
+                )}
 
-                        {/* Section Title */}
+                {filterData.map((data) => (
+
+                    <div key={data.key}>
+
                         <p className="
                             text-xs
                             text-muted-foreground
@@ -147,10 +136,9 @@ const FilterCard = () => {
                             {data.filterType}
                         </p>
 
-                        {/* Filter Options */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
 
-                            {data.array.map((item, idx) => {
+                            {data.array.map((item) => {
 
                                 const isSelected =
                                     filters[data.key] === item;
@@ -158,7 +146,7 @@ const FilterCard = () => {
                                 return (
 
                                     <button
-                                        key={idx}
+                                        key={`${data.key}-${item}`}
                                         onClick={() =>
                                             handleFilterChange(
                                                 data.key,
@@ -196,7 +184,6 @@ const FilterCard = () => {
                                         `}
                                     >
 
-                                        {/* Radio Circle */}
                                         <div className={`
                                             w-4 h-4
                                             rounded-full
@@ -205,6 +192,7 @@ const FilterCard = () => {
                                             items-center
                                             justify-center
                                             transition-all
+                                            shrink-0
                                             ${
                                                 isSelected
                                                     ? "border-accent"
@@ -222,8 +210,7 @@ const FilterCard = () => {
 
                                         </div>
 
-                                        {/* Label */}
-                                        <span className="text-sm font-medium">
+                                        <span className="text-sm font-medium truncate">
                                             {item}
                                         </span>
 

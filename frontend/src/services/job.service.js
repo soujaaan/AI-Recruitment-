@@ -14,6 +14,14 @@ export const jobService = {
             throw new Error(getApiErrorMessage(error));
         }
     },
+    async getJobFilters() {
+        try {
+            const response = await apiClient.get("/api/v1/job/filters");
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
     async getJobById(jobId) {
         try {
             const response = await apiClient.get(`/api/v1/job/get/${jobId}`);

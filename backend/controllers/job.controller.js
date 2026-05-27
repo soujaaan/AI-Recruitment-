@@ -13,6 +13,13 @@ import {
     getRecruiterDashboardMetrics,
     jobApplicationMatch,
 } from "../utils/jobApplicantCounts.js";
+import { buildPublicJobQuery, getJobFilterOptions } from "../utils/jobFilters.util.js";
+import {
+    buildCandidateContext,
+    MAX_JOBS_FOR_SCORING,
+    rankJobsForCandidate,
+} from "../utils/jobRecommendation.util.js";
+import { ROLES } from "../constants/roles.js";
 
 const canManageJob = (job, user) =>
     user?.role === "admin" ||
@@ -69,40 +76,61 @@ export const postJob = asyncHandler(async (req, res) => {
     );
 });
 
+export const getJobFilters = asyncHandler(async (req, res) => {
+    const filters = await getJobFilterOptions();
+    return sendSuccess(res, 200, { filters }, "Job filters fetched successfully", { filters });
+});
+
 export const getAllJobs = asyncHandler(async (req, res) => {
     const { page, limit, skip } = getPagination(req.query);
-    const {
-    search = "",
-    keyword = "",
-    location,
-    jobType
-} = req.query;
+    const { query, searchTerm } = buildPublicJobQuery(req.query);
 
-const searchTerm = String(search || keyword).trim();
+    const userRole = req.user?.role;
+    const isCandidate = userRole === ROLES.CANDIDATE || userRole === "candidate";
 
-const query = {};
+    let feedType = "latest";
+    let candidateContext = null;
 
-if (searchTerm) {
-    query.$text = { $search: searchTerm };
-}
+    if (isCandidate && req.user?.id) {
+        candidateContext = await buildCandidateContext(req.user.id);
+        feedType = "personalized";
+    } else if (userRole === ROLES.RECRUITER || userRole === ROLES.ADMIN) {
+        feedType = "latest";
+    }
 
-if (location && location !== "All") {
-    query.location = String(location).trim();
-}
+    if (isCandidate && candidateContext) {
+        const jobs = await Job.find(query)
+            .sort({ createdAt: -1 })
+            .limit(MAX_JOBS_FOR_SCORING)
+            .lean();
 
-if (jobType && jobType !== "All") {
-    query.jobType = String(jobType).trim();
-}
+        const rankedJobs = rankJobsForCandidate(jobs, candidateContext);
+        const totalJobs = rankedJobs.length;
+        const paginatedJobs = rankedJobs.slice(skip, skip + limit);
 
-const totalJobs = await Job.countDocuments(query);
+        return sendSuccess(
+            res,
+            200,
+            {
+                jobs: paginatedJobs,
+                pagination: buildPaginationMeta(totalJobs, page, limit),
+                feedType,
+                personalized: true,
+            },
+            "Personalized jobs fetched successfully",
+            { jobs: paginatedJobs, feedType }
+        );
+    }
+
+    const totalJobs = await Job.countDocuments(query);
     const jobsQuery = Job.find(
         query,
-        search ? { score: { $meta: "textScore" } } : {}
+        searchTerm ? { score: { $meta: "textScore" } } : {}
     )
         .skip(skip)
         .limit(limit);
 
-    if (search) {
+    if (searchTerm) {
         jobsQuery.sort({ score: { $meta: "textScore" } });
     } else {
         jobsQuery.sort({ createdAt: -1 });
@@ -116,9 +144,11 @@ const totalJobs = await Job.countDocuments(query);
         {
             jobs,
             pagination: buildPaginationMeta(totalJobs, page, limit),
+            feedType,
+            personalized: false,
         },
         "Jobs fetched successfully",
-        { jobs }
+        { jobs, feedType }
     );
 });
 

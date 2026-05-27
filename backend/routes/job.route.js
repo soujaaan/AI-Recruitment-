@@ -1,11 +1,13 @@
 import express from "express";
 import isAuthenticated from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
+import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 import {
     deleteJob,
     getAdminJobs,
     getAllJobs,
     getJobById,
+    getJobFilters,
     postJob,
     updateJob,
 } from "../controllers/job.controller.js";
@@ -13,9 +15,10 @@ import { validateJobCreation, validateObjectIdParam } from "../middlewares/valid
 
 const router = express.Router();
 
-// Public job browsing — no auth required
-router.route("/jobs").get(getAllJobs);
-router.route("/get").get(getAllJobs);
+// Public job browsing — optional auth enables personalized ranking for candidates
+router.route("/filters").get(getJobFilters);
+router.route("/jobs").get(optionalAuth, getAllJobs);
+router.route("/get").get(optionalAuth, getAllJobs);
 router.route("/get/:id").get(validateObjectIdParam("id"), getJobById);
 router.route("/jobs/:id").get(validateObjectIdParam("id"), getJobById);
 

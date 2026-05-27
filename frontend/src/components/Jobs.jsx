@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Navbar from './shared/Navbar'
 import FilterCard from './FilterCard'
 import Job from './Job'
@@ -8,28 +8,53 @@ import SectionHeader from './common/SectionHeader'
 import EmptyState from './common/EmptyState'
 import Pagination from './common/Pagination'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
-import { Search } from 'lucide-react'
+import { Search, Sparkles } from 'lucide-react'
 import { Input } from './ui/input'
 
 const Jobs = () => {
-    const { allJobs, jobPagination } = useSelector(store => store.job);
+    const { allJobs, jobPagination, searchedQuery, personalized } = useSelector(store => store.job);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
+    const [page, setPage] = useState(1);
 
-    useGetAllJobs({
-        page: 1,
-        limit: 12,
-        search: debouncedQuery || undefined
-    });
+    const jobParams = useMemo(() => {
+        const params = {
+            page,
+            limit: 12,
+        };
+
+        if (debouncedQuery) {
+            params.search = debouncedQuery;
+        }
+
+        if (searchedQuery && typeof searchedQuery === "object") {
+            Object.entries(searchedQuery).forEach(([key, value]) => {
+                if (value) params[key] = value;
+            });
+        }
+
+        return params;
+    }, [page, debouncedQuery, searchedQuery]);
+
+    useGetAllJobs(jobParams);
 
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedQuery(searchQuery);
+            setPage(1);
         }, 400);
 
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [searchedQuery]);
+
+    const subtitle = personalized
+        ? "AI-ranked openings matched to your skills, experience, and preferences."
+        : "Browse thousands of curated openings tailored to your skills, location, and career goals.";
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen overflow-hidden">
@@ -38,7 +63,6 @@ const Jobs = () => {
 
             <section className="relative py-14 px-6">
 
-                {/* Background Glow */}
                 <div className="
                     absolute
                     top-0
@@ -53,7 +77,6 @@ const Jobs = () => {
 
                 <div className="max-w-7xl mx-auto relative z-10">
 
-                    {/* HERO SECTION */}
                     <div className="max-w-4xl">
 
                         <SectionHeader
@@ -66,10 +89,16 @@ const Jobs = () => {
                                     </span>
                                 </>
                             }
-                            subtitle="Browse thousands of curated openings tailored to your skills, location, and career goals."
+                            subtitle={subtitle}
                         />
 
-                        {/* Search Bar */}
+                        {personalized && (
+                            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-medium text-accent">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                Personalized for you
+                            </div>
+                        )}
+
                         <div className="mt-6 max-w-2xl">
 
                             <div className="relative">
@@ -109,7 +138,6 @@ const Jobs = () => {
 
                     </div>
 
-                    {/* MAIN CONTENT */}
                     <div className="
                         mt-12
                         grid
@@ -118,7 +146,6 @@ const Jobs = () => {
                         gap-8
                     ">
 
-                        {/* FILTER SIDEBAR */}
                         <div className="lg:col-span-3">
 
                             <div className="lg:sticky lg:top-24">
@@ -129,7 +156,6 @@ const Jobs = () => {
 
                         </div>
 
-                        {/* JOB GRID */}
                         <div className="lg:col-span-9">
 
                             {allJobs.length <= 0 ? (
@@ -176,7 +202,10 @@ const Jobs = () => {
 
                                     </div>
 
-                                    <Pagination pagination={jobPagination} />
+                                    <Pagination
+                                        pagination={jobPagination}
+                                        onPageChange={setPage}
+                                    />
 
                                 </>
 

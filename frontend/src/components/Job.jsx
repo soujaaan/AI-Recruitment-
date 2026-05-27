@@ -15,13 +15,32 @@ const Job = ({ job }) => {
             onClick={() => navigate(`/jobs/${job?._id}`)}
         >
             <div className="flex items-start justify-between mb-4">
-                <div>
+                <div className="min-w-0 flex-1">
                     <p className="text-sm text-muted-foreground font-medium">{job?.company?.name}</p>
                     <h3 className="font-display font-bold text-xl text-foreground mt-1 group-hover:text-accent transition-colors">
                         {job?.title}
                     </h3>
+                    {(job?.isBestMatch || job?.isAiMatched) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {job?.isBestMatch && (
+                                <Badge variant="green" className="text-[10px] px-2 py-0">
+                                    Best Match
+                                </Badge>
+                            )}
+                            {job?.isAiMatched && !job?.isBestMatch && (
+                                <Badge variant="green" className="text-[10px] px-2 py-0">
+                                    AI Matched
+                                </Badge>
+                            )}
+                            {typeof job?.matchPercent === "number" && job.matchPercent > 0 && (
+                                <Badge variant="outline" className="text-[10px] px-2 py-0 border-accent/40 text-accent">
+                                    {job.matchPercent}% match
+                                </Badge>
+                            )}
+                        </div>
+                    )}
                 </div>
-                <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-300" />
+                <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-accent transition-all duration-300 shrink-0 ml-2" />
             </div>
 
             <p className="text-sm text-muted-foreground line-clamp-2 flex-1">

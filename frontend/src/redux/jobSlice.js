@@ -9,6 +9,8 @@ const jobSlice = createSlice({
         searchJobByText:"",
         allAppliedJobs:[],
         searchedQuery:"",
+        feedType:"latest",
+        personalized:false,
         pagination:null,
         adminPagination:null,
         appliedPagination:null,
@@ -34,6 +36,10 @@ const jobSlice = createSlice({
         setSearchedQuery:(state,action) => {
             state.searchedQuery = action.payload;
         },
+        setJobFeedMeta:(state,action) => {
+            state.feedType = action.payload?.feedType ?? "latest";
+            state.personalized = Boolean(action.payload?.personalized);
+        },
         setJobPagination:(state,action) => {
             state.pagination = action.payload;
         },
@@ -58,6 +64,7 @@ export const {
     setSearchJobByText, 
     setAllAppliedJobs,
     setSearchedQuery,
+    setJobFeedMeta,
     setJobPagination,
     setAdminJobPagination,
     setAppliedJobPagination,
