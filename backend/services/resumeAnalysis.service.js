@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import pdfParse from "pdf-parse";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import { ApiError } from "../utils/apiError.js";
 import { env } from "../config/env.js";
@@ -11,7 +11,26 @@ const getFlaskBaseUrl = () => {
   return process.env.FLASK_AI_BASE_URL || env.flaskAiBaseUrl || "http://localhost:5000";
 };
 
-const extractPdfText = async (resumePathOrUrl) => {
+export const extractTextFromPdfBuffer = async (buffer) => {
+  const loadingTask = pdfjsLib.getDocument({ data: buffer });
+  const pdf = await loadingTask.promise;
+  let extractedText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const strings = content.items.map((item) => item.str);
+    extractedText += `${strings.join(" ")} `;
+  }
+
+  const text = extractedText.replace(/\s+/g, " ").trim();
+  if (!text) {
+    throw new ApiError(400, "Could not extract text from PDF (empty/corrupt).");
+  }
+  return text;
+};
+
+export const extractPdfTextFromSource = async (resumePathOrUrl) => {
   // Current architecture stores resumes as Cloudinary URLs in user.profile.resume.
   // For deterministic ATS inference, we support local filesystem paths too.
   // If URL is used, we fetch it.
@@ -32,12 +51,7 @@ const extractPdfText = async (resumePathOrUrl) => {
     buffer = fs.readFileSync(filePath);
   }
 
-  const parsed = await pdfParse(buffer);
-  const text = parsed?.text || "";
-  if (!text.trim()) {
-    throw new ApiError(400, "Could not extract text from PDF (empty/corrupt). ");
-  }
-  return text;
+  return extractTextFromPdfBuffer(buffer);
 };
 
 const callFlaskAnalyze = async (resumeText) => {
@@ -70,7 +84,7 @@ export const aiAnalyzeResume = async (resumeText, opts = {}) => {
 };
 
 export const analyzeResumeFromStoredFile = async (storedResumeUrlOrPath) => {
-  const text = await extractPdfText(storedResumeUrlOrPath);
+  const text = await extractPdfTextFromSource(storedResumeUrlOrPath);
   return callFlaskAnalyze(text);
 };
 

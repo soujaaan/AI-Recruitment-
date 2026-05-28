@@ -17,7 +17,7 @@ import { sendSuccess } from "../utils/response.js";
 import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { normalizeRole, isValidRole } from "../utils/role.utils.js";
 import { logger } from "../utils/logger.js";
-import pdfParse from "pdf-parse";
+import { aiAnalyzeResume, extractTextFromPdfBuffer } from "../services/resumeAnalysis.service.js";
 
 const buildSafeUser = (user) => {
     const profile = (user?.profile && typeof user.profile === "object")
@@ -356,8 +356,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.originalname}`);
 
                 const pdfBuffer = req.file.buffer;
-                const pdfData = await pdfParse(pdfBuffer);
-                let text = pdfData?.text?.trim() || '';
+                let text = await extractTextFromPdfBuffer(pdfBuffer);
 
                 // Clean text for logging only; Flask also cleans internally
                 text = text.replace(/\s+/g, ' ').trim();
@@ -367,7 +366,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
                     logger.warn(`Resume text too short (<200). Will NOT call Flask ML. user=${user._id}`);
                 } else {
                     // Call Flask ATS service via the existing deterministic pipeline
-                    const { aiAnalyzeResume } = await import("../services/resumeAnalysis.service.js");
                     const ml = await aiAnalyzeResume(text);
                     logger.info(`Flask ATS returned for user ${user._id}`, {
                         atsScore: ml?.atsScore,

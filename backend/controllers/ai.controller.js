@@ -11,7 +11,7 @@ import { validateChatPayload } from "../utils/aiValidate.js";
 import { prompts } from "../utils/aiPrompts.js";
 import { groqChatCompletion } from "../utils/aiGroqChat.js";
 import { sendSuccess } from "../utils/response.js";
-import pdfParse from "pdf-parse";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { analyzeResumeWithGroq } from "../services/resumeAnalysis.service.js";
 
 import { Resume } from "../models/resume.model.js";
@@ -33,8 +33,20 @@ export const analyzeResume = asyncHandler(async (req, res) => {
 
   let extractedText = "";
   try {
-    const pdfData = await pdfParse(pdfBuffer);
-    extractedText = String(pdfData?.text || "").replace(/\s+/g, " ").trim();
+    const loadingTask = pdfjsLib.getDocument({
+      data: req.file.buffer,
+    });
+
+    const pdf = await loadingTask.promise;
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const strings = content.items.map((item) => item.str);
+      extractedText += strings.join(" ");
+    }
+
+    extractedText = extractedText.replace(/\s+/g, " ").trim();
   } catch {
     throw new ApiError(400, "Unable to parse PDF. Please upload a valid resume.");
   }

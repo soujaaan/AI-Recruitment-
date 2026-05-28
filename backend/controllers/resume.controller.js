@@ -1,41 +1,9 @@
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
-import fs from "fs";
-import path from "path";
-import { aiAnalyzeResume } from "../services/resumeAnalysis.service.js";
+import { aiAnalyzeResume, extractPdfTextFromSource } from "../services/resumeAnalysis.service.js";
 import { Resume } from "../models/resume.model.js";
 import ResumeAnalysis from "../models/resumeAnalysis.model.js";
-import pdfParse from "pdf-parse";
-
-const extractPdfText = async (resumeFileUrlOrPath) => {
-    let buffer;
-
-    // Allow Cloudinary/http URLs (already used in this app for resume storage)
-    if (typeof resumeFileUrlOrPath === "string" && resumeFileUrlOrPath.startsWith("http")) {
-        const fileResponse = await fetch(resumeFileUrlOrPath);
-        if (!fileResponse.ok) {
-            throw new ApiError(400, `Failed to fetch resume file: ${fileResponse.statusText}`);
-        }
-        const arrayBuffer = await fileResponse.arrayBuffer();
-        buffer = Buffer.from(arrayBuffer);
-    } else {
-        const filePath = path.resolve(resumeFileUrlOrPath);
-        if (!fs.existsSync(filePath)) {
-            throw new ApiError(404, "Local resume file not found");
-        }
-        buffer = fs.readFileSync(filePath);
-    }
-
-    const parsed = await pdfParse(buffer);
-    const text = parsed?.text || "";
-
-    if (!text || !text.trim()) {
-        throw new ApiError(400, "Could not extract any text from the PDF. It might be corrupt or empty.");
-    }
-
-    return text;
-};
 
 // Deterministic resume analysis (Flask ML ATS)
 export const parseResume = asyncHandler(async (req, res) => {
@@ -56,7 +24,7 @@ export const parseResume = asyncHandler(async (req, res) => {
         return sendSuccess(res, 200, resume.parsedData, "Resume analysis already computed");
     }
 
-    const resumeText = await extractPdfText(resume.fileUrl);
+    const resumeText = await extractPdfTextFromSource(resume.fileUrl);
 
     const ml = await aiAnalyzeResume(resumeText);
 
