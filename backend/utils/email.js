@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+// Force Node to prefer IPv4 when resolving addresses (bypasses Render IPv6 issues)
+dns.setDefaultResultOrder("ipv4first");
 
 console.log("[SMTP READY] Gmail production transport initialized and ready.");
 console.log("[SMTP] transporter initialized");
@@ -11,6 +15,7 @@ export const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
+    family: 4,
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 10000,
