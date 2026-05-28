@@ -32,7 +32,6 @@ import path from "path";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
 import { User } from "./models/user.model.js";
 import bcrypt from "bcryptjs";
-import { verifyEmailTransport } from "./utils/email.js";
 
 const app = express();
 
@@ -116,7 +115,6 @@ app.use(errorHandler);
 
 const startServer = async () => {
     await connectDB();
-    await verifyEmailTransport();
     
     // Optional admin seeding (never runs by default)
     if (process.env.SEED_ADMIN === "true") {
