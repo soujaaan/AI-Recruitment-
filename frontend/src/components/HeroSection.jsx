@@ -26,7 +26,25 @@ const HeroSection = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { allJobs } = useSelector(store => store.job);
-    const TRENDING_SEARCHES = ["MERN Developer", "Data Analyst", "Google", "Remote Jobs", "Frontend Developer"];
+    const trendingSearches = useMemo(() => {
+        const trendingPool = [
+            "MERN Developer",
+            "Frontend Developer",
+            "Backend Engineer",
+            "Data Analyst",
+            "UI/UX Designer",
+            "Remote Jobs",
+            "Google",
+            "Microsoft",
+            "Amazon",
+            "React Developer",
+            "DevOps Engineer",
+            "Full Stack Developer"
+        ];
+
+        const shuffled = [...trendingPool].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, 5);
+    }, []);
 
     const searchableItems = useMemo(() => {
         const titles = allJobs
@@ -352,7 +370,7 @@ const HeroSection = () => {
                                 Trending Searches
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {TRENDING_SEARCHES.map((term) => (
+                                {trendingSearches.map((term) => (
                                     <button
                                         key={term}
                                         type="button"
