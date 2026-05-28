@@ -46,7 +46,7 @@ const Footer = () => {
           <div className="md:col-span-3">
             <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-foreground mb-4">Resources</h3>
             <ul className="space-y-3">
-              <li><Link to="/" className="text-muted-foreground hover:text-accent transition-colors text-sm">AI Resume Analysis</Link></li>
+              <li><Link to="/resume-analysis" className="text-muted-foreground hover:text-accent transition-colors text-sm">AI Resume Analysis</Link></li>
               <li><Link to="/" className="text-muted-foreground hover:text-accent transition-colors text-sm">Interview Prep</Link></li>
               <li><Link to="/" className="text-muted-foreground hover:text-accent transition-colors text-sm">Job Matching</Link></li>
               <li><Link to="/" className="text-muted-foreground hover:text-accent transition-colors text-sm">Help Center</Link></li>
