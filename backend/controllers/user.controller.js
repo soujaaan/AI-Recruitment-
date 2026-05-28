@@ -1,7 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import * as fs from "fs/promises";
-import path from "path";
 import { User } from "../models/user.model.js";
 import { Resume } from "../models/resume.model.js";
 import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
@@ -357,9 +355,9 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
             // AI Resume Screening & ATS Scoring Pipeline (deterministic ML via Flask)
             try {
-                logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.path}`);
+                logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.originalname}`);
 
-                const pdfBuffer = await fs.readFile(req.file.path);
+                const pdfBuffer = req.file.buffer;
                 const pdfModule = await import("pdf-parse");
                 const pdfParse = pdfModule.default;
                 const pdfData = await pdfParse(pdfBuffer);

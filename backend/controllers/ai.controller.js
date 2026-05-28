@@ -11,9 +11,45 @@ import { validateChatPayload } from "../utils/aiValidate.js";
 import { prompts } from "../utils/aiPrompts.js";
 import { groqChatCompletion } from "../utils/aiGroqChat.js";
 import { sendSuccess } from "../utils/response.js";
+import pdfParse from "pdf-parse";
+import { analyzeResumeWithGroq } from "../services/resumeAnalysis.service.js";
 
 import { Resume } from "../models/resume.model.js";
 import ResumeAnalysis from "../models/resumeAnalysis.model.js";
+
+export const analyzeResume = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw new ApiError(400, "Resume PDF file is required");
+  }
+
+  if (req.file.mimetype !== "application/pdf") {
+    throw new ApiError(400, "Only PDF files are allowed");
+  }
+
+  const pdfBuffer = req.file.buffer;
+  if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
+    throw new ApiError(400, "Invalid uploaded file buffer");
+  }
+
+  let extractedText = "";
+  try {
+    const pdfData = await pdfParse(pdfBuffer);
+    extractedText = String(pdfData?.text || "").replace(/\s+/g, " ").trim();
+  } catch {
+    throw new ApiError(400, "Unable to parse PDF. Please upload a valid resume.");
+  }
+
+  if (!extractedText) {
+    throw new ApiError(400, "Could not extract text from PDF");
+  }
+
+  const analysis = await analyzeResumeWithGroq(extractedText, groqChatCompletion);
+
+  return res.status(200).json({
+    success: true,
+    analysis,
+  });
+});
 
 export const getResumeAnalysis = asyncHandler(async (req, res) => {
   const analysis = await ResumeAnalysis.findOne({ userId: req.user.id })

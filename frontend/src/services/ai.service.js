@@ -3,6 +3,20 @@ import { apiClient, getApiErrorMessage } from "@/lib/api";
 const unwrap = (response) => response.data;
 
 export const aiService = {
+    async analyzeResumePdf(file) {
+        try {
+            const formData = new FormData();
+            formData.append("resume", file);
+            const response = await apiClient.post("/api/ai/resume-analysis", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
     async getResumeAnalysis() {
         try {
             const response = await apiClient.get("/api/ai/resume-analysis");

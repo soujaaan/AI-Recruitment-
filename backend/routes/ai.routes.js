@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  analyzeResume,
   getResumeAnalysis,
   postChat,
   generateInterviewQuestions,
@@ -7,9 +8,11 @@ import {
 } from "../controllers/ai.controller.js";
 import { protectRoute } from "../middlewares/auth.middleware.js";
 import authorizeRoles from "../middlewares/authorizeRoles.js";
+import { upload } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
+router.post("/resume-analysis", upload.single("resume"), analyzeResume);
 router.get("/resume-analysis", protectRoute, getResumeAnalysis);
 router.post("/chat", protectRoute, postChat);
 

@@ -12,6 +12,7 @@ const Jobs = lazy(() => import("./components/Jobs"));
 const Browse = lazy(() => import("./components/Browse"));
 const Profile = lazy(() => import("./components/Profile"));
 const BuildResume = lazy(() => import("./pages/BuildResume"));
+const ResumeAnalysis = lazy(() => import("./pages/ResumeAnalysis"));
 const JobDescription = lazy(() => import("./components/JobDescription"));
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const Applications = lazy(() => import("./pages/candidate/ApplicationsPage"));
@@ -62,6 +63,10 @@ const appRouter = createBrowserRouter([
   {
     path: "/browse",
     element: withSuspense(<Browse />)
+  },
+  {
+    path: "/resume-analysis",
+    element: withSuspense(<ResumeAnalysis />)
   },
   {
     element: <ProtectedRoute allowedRoles={["candidate", "recruiter", "admin"]} />,
