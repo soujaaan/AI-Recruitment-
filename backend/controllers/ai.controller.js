@@ -34,19 +34,21 @@ export const analyzeResume = asyncHandler(async (req, res) => {
   let extractedText = "";
   try {
     const loadingTask = pdfjsLib.getDocument({
-      data: req.file.buffer,
+      data: new Uint8Array(req.file.buffer),
     });
 
     const pdf = await loadingTask.promise;
+    console.log("PDF pages:", pdf.numPages);
 
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const strings = content.items.map((item) => item.str);
+      const strings = content.items.map((item) => item.str || "");
       extractedText += strings.join(" ");
     }
 
     extractedText = extractedText.replace(/\s+/g, " ").trim();
+    console.log("Extracted text length:", extractedText.length);
   } catch {
     throw new ApiError(400, "Unable to parse PDF. Please upload a valid resume.");
   }
