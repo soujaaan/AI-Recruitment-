@@ -17,6 +17,7 @@ import { sendSuccess } from "../utils/response.js";
 import { getPagination, buildPaginationMeta } from "../utils/pagination.js";
 import { normalizeRole, isValidRole } from "../utils/role.utils.js";
 import { logger } from "../utils/logger.js";
+import pdfParse from "pdf-parse";
 
 const buildSafeUser = (user) => {
     const profile = (user?.profile && typeof user.profile === "object")
@@ -264,9 +265,6 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-    console.log("Update Profile - req.body:", req.body);
-    console.log("Update Profile - req.file:", req.file);
-    
     const userId = req.user?.id || req.id;
     const user = await User.findById(userId).populate("profile");
 
@@ -358,8 +356,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 logger.info(`ATS analysis trigger after upload for user ${user._id}, file: ${req.file.originalname}`);
 
                 const pdfBuffer = req.file.buffer;
-                const pdfModule = await import("pdf-parse");
-                const pdfParse = pdfModule.default;
                 const pdfData = await pdfParse(pdfBuffer);
                 let text = pdfData?.text?.trim() || '';
 
@@ -459,8 +455,6 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiError(404, "User not found");
     }
-
-    console.log("[getCurrentUser] User document:", user);
 
     return sendSuccess(res, 200, { user: buildSafeUser(user) }, "User fetched successfully", { user: buildSafeUser(user) });
 });

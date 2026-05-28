@@ -6,6 +6,7 @@ import path from "path";
 import { aiAnalyzeResume } from "../services/resumeAnalysis.service.js";
 import { Resume } from "../models/resume.model.js";
 import ResumeAnalysis from "../models/resumeAnalysis.model.js";
+import pdfParse from "pdf-parse";
 
 const extractPdfText = async (resumeFileUrlOrPath) => {
     let buffer;
@@ -26,9 +27,7 @@ const extractPdfText = async (resumeFileUrlOrPath) => {
         buffer = fs.readFileSync(filePath);
     }
 
-    const pdfModule = await import("pdf-parse");
-    const pdf = pdfModule.default;
-    const parsed = await pdf(buffer);
+    const parsed = await pdfParse(buffer);
     const text = parsed?.text || "";
 
     if (!text || !text.trim()) {
@@ -57,13 +56,9 @@ export const parseResume = asyncHandler(async (req, res) => {
         return sendSuccess(res, 200, resume.parsedData, "Resume analysis already computed");
     }
 
-    console.log("parseResume called for userId:", userId);
-
     const resumeText = await extractPdfText(resume.fileUrl);
-    console.log("Resume text extracted length:", resumeText?.length);
 
     const ml = await aiAnalyzeResume(resumeText);
-    console.log("ATS analysis received from Flask:", ml);
 
 
     const deterministicAnalysis = {
@@ -93,8 +88,6 @@ export const parseResume = asyncHandler(async (req, res) => {
         recommendations: deterministicAnalysis.recommendations,
         analyzedAt: new Date()
     });
-
-    console.log("ResumeAnalysis saved successfully for userId:", userId);
 
     return sendSuccess(res, 200, persisted, "Resume analyzed successfully (deterministic ML)");
 

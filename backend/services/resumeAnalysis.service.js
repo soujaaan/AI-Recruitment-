@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import pdfParse from "pdf-parse";
 
 import { ApiError } from "../utils/apiError.js";
 import { env } from "../config/env.js";
@@ -31,9 +32,7 @@ const extractPdfText = async (resumePathOrUrl) => {
     buffer = fs.readFileSync(filePath);
   }
 
-  const pdfModule = await import("pdf-parse");
-  const pdf = pdfModule.default;
-  const parsed = await pdf(buffer);
+  const parsed = await pdfParse(buffer);
   const text = parsed?.text || "";
   if (!text.trim()) {
     throw new ApiError(400, "Could not extract text from PDF (empty/corrupt). ");
@@ -44,9 +43,6 @@ const extractPdfText = async (resumePathOrUrl) => {
 const callFlaskAnalyze = async (resumeText) => {
   const url = `${getFlaskBaseUrl()}/analyze`;
 
-  console.log("Calling Flask ATS:", url);
-  console.log("ResumeText length:", resumeText?.length);
-
   const resp = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -56,13 +52,11 @@ const callFlaskAnalyze = async (resumeText) => {
 
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
-    console.error("Flask ATS non-OK:", resp.status, txt);
     throw new ApiError(500, `ML inference failed: ${resp.status} ${txt}`);
   }
 
 
   const data = await resp.json();
-  console.log("Flask ATS response:", data);
   if (data?.error) {
     throw new ApiError(500, `ML inference error: ${data.error}`);
   }
