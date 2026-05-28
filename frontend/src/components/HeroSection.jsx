@@ -12,6 +12,7 @@ import { setAuthState } from '@/redux/authSlice';
 import { getDashboardPath } from '@/utils/authRedirect';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
+import OtpModal from './auth/OtpModal';
 
 const HERO_STATS = [
     { value: "10K+", label: "Jobs" },
@@ -105,6 +106,7 @@ const HeroSection = () => {
     const [activeTab, setActiveTab] = useState("signup");
     const [showPassword, setShowPassword] = useState({ login: false, signup: false });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isOtpOpen, setIsOtpOpen] = useState(false);
 
     // Controlled Signup Inputs
     const [signupInput, setSignupInput] = useState({
@@ -193,7 +195,7 @@ const HeroSection = () => {
         try {
             await authService.register(formData);
             toast.success(`OTP sent to ${signupInput.email}`);
-            navigate("/verify-otp", { state: { email: signupInput.email, role: signupInput.role } });
+            setIsOtpOpen(true);
         } catch (error) {
             toast.error(error.message || "Signup failed");
         } finally {
@@ -710,6 +712,13 @@ const HeroSection = () => {
 
                 </div>
             </div>
+
+            <OtpModal
+                isOpen={isOtpOpen}
+                onClose={() => setIsOtpOpen(false)}
+                email={signupInput.email}
+                role={signupInput.role}
+            />
 
         </section>
     )

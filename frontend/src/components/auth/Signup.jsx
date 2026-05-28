@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { apiClient } from '@/lib/api'
+import OtpModal from './OtpModal'
 
 const Signup = () => {
 
@@ -30,6 +31,7 @@ const Signup = () => {
 
     const [isSending, setIsSending] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [isOtpOpen, setIsOtpOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -69,10 +71,7 @@ const Signup = () => {
             await apiClient.post("/api/auth/send-otp", formData);
 
             toast.success(`OTP sent to ${input.email}`);
-
-            navigate("/verify-otp", {
-                state: { email: input.email, role: input.role }
-            });
+            setIsOtpOpen(true);
 
         } catch (error) {
 
@@ -416,6 +415,13 @@ const Signup = () => {
                 </div>
 
             </section>
+
+            <OtpModal
+                isOpen={isOtpOpen}
+                onClose={() => setIsOtpOpen(false)}
+                email={input.email}
+                role={input.role}
+            />
 
         </div>
     )

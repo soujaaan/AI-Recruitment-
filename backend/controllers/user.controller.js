@@ -95,15 +95,18 @@ export const sendOtp = asyncHandler(async (req, res) => {
     const normalizedEmail = String(emailField).toLowerCase().trim();
 
     if (!fullName || !emailField || !passwordField || !roleField) {
+        console.warn(`[OTP SIGNUP WARNING] Missing required signup fields for: ${emailField}`);
         throw new ApiError(400, "Full name, email, password, and role are required");
     }
 
     if (!isValidRole(roleField)) {
+        console.warn(`[OTP SIGNUP WARNING] Invalid role requested: ${roleField} for email: ${normalizedEmail}`);
         throw new ApiError(400, "Role must be 'candidate' or 'recruiter'");
     }
 
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
+        console.warn(`[OTP SIGNUP WARNING] Duplicate signup attempt. Email ${normalizedEmail} already exists.`);
         throw new ApiError(400, "User already exists with this email. Please login.");
     }
 
@@ -112,11 +115,14 @@ export const sendOtp = asyncHandler(async (req, res) => {
         const now = new Date();
         const timeSinceLastSent = (now.getTime() - existingTemp.lastSentAt.getTime()) / 1000;
         if (timeSinceLastSent < 60) {
+            console.warn(`[OTP RATE LIMIT] Rapid OTP request blocked. ${normalizedEmail} requested again in ${timeSinceLastSent}s.`);
             throw new ApiError(429, `Please wait ${Math.ceil(60 - timeSinceLastSent)}s before resending OTP.`);
         }
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`[OTP GENERATION] Generated 6-digit OTP for email: ${normalizedEmail}`);
+
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const hashedPassword = await bcrypt.hash(passwordField, 10);
@@ -154,10 +160,12 @@ export const sendOtp = asyncHandler(async (req, res) => {
         { upsert: true, new: true }
     );
 
+    console.log(`[EMAIL SEND ATTEMPT] Preparing to dispatch OTP email to: ${normalizedEmail}`);
     try {
         await sendOTP(normalizedEmail, otp);
+        console.log(`[EMAIL SUCCESS] OTP email successfully sent to: ${normalizedEmail}`);
     } catch (error) {
-        logger.error(`Failed to send OTP to ${normalizedEmail}:`, error);
+        console.error(`[EMAIL FAILURE] Failed to send OTP email to ${normalizedEmail}: ${error.message}`);
         throw new ApiError(500, "Failed to send verification email. Please try again.");
     }
 
@@ -171,19 +179,30 @@ export const resendOtp = asyncHandler(async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+        console.warn(`[OTP RESEND WARNING] Duplicate signup attempt. Email ${normalizedEmail} already exists in active accounts.`);
+        throw new ApiError(400, "User already exists with this email. Please login.");
+    }
+
     const tempUser = await OtpTemp.findOne({ email: normalizedEmail });
 
     if (!tempUser) {
+        console.warn(`[OTP RESEND WARNING] No active registration session found for: ${normalizedEmail}`);
         throw new ApiError(400, "OTP session expired or not found. Please register again.");
     }
 
     const now = new Date();
     const timeSinceLastSent = (now.getTime() - tempUser.lastSentAt.getTime()) / 1000;
     if (timeSinceLastSent < 60) {
+        console.warn(`[OTP RESEND RATE LIMIT] Rapid resend blocked. ${normalizedEmail} requested resend in ${timeSinceLastSent}s.`);
         throw new ApiError(429, `Please wait ${Math.ceil(60 - timeSinceLastSent)}s before resending OTP.`);
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`[OTP GENERATION] Regenerated 6-digit OTP for email: ${normalizedEmail}`);
+
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     tempUser.otp = hashedOtp;
@@ -192,10 +211,12 @@ export const resendOtp = asyncHandler(async (req, res) => {
     tempUser.attempts = 0;
     await tempUser.save();
 
+    console.log(`[EMAIL SEND ATTEMPT] Preparing to dispatch resent OTP email to: ${normalizedEmail}`);
     try {
         await sendOTP(normalizedEmail, otp);
+        console.log(`[EMAIL SUCCESS] Resent OTP email successfully sent to: ${normalizedEmail}`);
     } catch (error) {
-        logger.error(`Failed to resend OTP to ${normalizedEmail}:`, error);
+        console.error(`[EMAIL FAILURE] Failed to resend OTP email to ${normalizedEmail}: ${error.message}`);
         throw new ApiError(500, "Failed to send verification email. Please try again.");
     }
 
@@ -209,17 +230,27 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+        console.warn(`[VERIFICATION FAILURE] Attempt to verify already registered email: ${normalizedEmail}`);
+        throw new ApiError(400, "User already exists with this email. Please login.");
+    }
+
     const tempUser = await OtpTemp.findOne({ email: normalizedEmail });
 
     if (!tempUser) {
+        console.warn(`[VERIFICATION FAILURE] No active registration session found or expired for: ${normalizedEmail}`);
         throw new ApiError(400, "OTP session expired or not found. Please register again.");
     }
 
     if (new Date() > tempUser.otpExpires) {
+        console.warn(`[VERIFICATION FAILURE] Expired OTP entered for email: ${normalizedEmail}`);
         throw new ApiError(400, "OTP has expired. Please request a new one.");
     }
 
     if (tempUser.attempts > 5) {
+        console.warn(`[VERIFICATION FAILURE] Too many verification attempts (attempts: ${tempUser.attempts}) for email: ${normalizedEmail}`);
         throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
     }
 
@@ -227,6 +258,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     if (hashedInputOtp !== tempUser.otp) {
         tempUser.attempts += 1;
         await tempUser.save();
+        console.warn(`[VERIFICATION FAILURE] Invalid OTP entered for email: ${normalizedEmail}. Failed attempts so far: ${tempUser.attempts}`);
         throw new ApiError(400, "Invalid OTP");
     }
 
@@ -244,6 +276,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     await user.save();
     await OtpTemp.deleteOne({ _id: tempUser._id });
 
+    console.log(`[VERIFICATION SUCCESS] OTP successfully verified and user created for: ${user.email} (${user.role})`);
     logger.info(`User registered via OTP: ${user.email} (${user.role})`);
 
     const session = issueAuthSession(res, user);
