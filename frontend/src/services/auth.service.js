@@ -6,9 +6,7 @@ export const authService = {
 
     async register(formData) {
         try {
-            const response = await apiClient.post("/api/auth/send-otp", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            const response = await apiClient.post("/api/auth/send-otp", formData);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
@@ -25,6 +23,14 @@ export const authService = {
     async verifyOtp(payload) {
         try {
             const response = await apiClient.post("/api/auth/verify-otp", payload);
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+    async resendOtp(payload) {
+        try {
+            const response = await apiClient.post("/api/auth/resend-otp", payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));

@@ -5,6 +5,7 @@ import { Input } from '../ui/input'
 import { Button } from '../ui/button'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useLoginMutation } from '@/hooks/useAuthMutations'
+import { getDashboardPath } from '@/utils/authRedirect'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
@@ -45,7 +46,7 @@ const Login = () => {
                     localStorage.setItem("token", token);
                 }
 
-                const from = location.state?.from || (user?.role === 'candidate' ? "/jobs" : "/admin/dashboard");
+                const from = location.state?.from || getDashboardPath(user?.role);
                 navigate(from);
             }
         } catch (error) {

@@ -56,10 +56,34 @@ const buildSafeUser = (user) => {
 const buildCookieOptions = () => ({
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    sameSite: env.nodeEnv === "production" ? "none" : "lax",
+    secure: env.nodeEnv === "production",
     path: "/",
 });
+
+const issueAuthSession = (res, user) => {
+    const normalizedUserRole = normalizeRole(user.role);
+
+    if (!env.jwtSecret) {
+        throw new ApiError(500, "Server configuration error");
+    }
+
+    const token = jwt.sign(
+        {
+            userId: user._id.toString(),
+            role: normalizedUserRole,
+        },
+        env.jwtSecret,
+        { expiresIn: env.jwtExpiresIn }
+    );
+
+    res.cookie("token", token, buildCookieOptions());
+
+    return {
+        token,
+        user: buildSafeUser(user),
+    };
+};
 
 export const sendOtp = asyncHandler(async (req, res) => {
     const fullName = req.body.fullName || req.body.fullname || "";
@@ -89,9 +113,6 @@ export const sendOtp = asyncHandler(async (req, res) => {
         const timeSinceLastSent = (now.getTime() - existingTemp.lastSentAt.getTime()) / 1000;
         if (timeSinceLastSent < 60) {
             throw new ApiError(429, `Please wait ${Math.ceil(60 - timeSinceLastSent)}s before resending OTP.`);
-        }
-        if (existingTemp.attempts >= 3) {
-            throw new ApiError(429, "Too many OTP requests. Please try again later.");
         }
     }
 
@@ -128,7 +149,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
             otp: hashedOtp,
             otpExpires,
             lastSentAt: new Date(),
-            $inc: { attempts: existingTemp ? 1 : 0 }
+            attempts: 0,
         },
         { upsert: true, new: true }
     );
@@ -141,6 +162,44 @@ export const sendOtp = asyncHandler(async (req, res) => {
     }
 
     return sendSuccess(res, 200, null, "OTP sent successfully to your email.");
+});
+
+export const resendOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const tempUser = await OtpTemp.findOne({ email: normalizedEmail });
+
+    if (!tempUser) {
+        throw new ApiError(400, "OTP session expired or not found. Please register again.");
+    }
+
+    const now = new Date();
+    const timeSinceLastSent = (now.getTime() - tempUser.lastSentAt.getTime()) / 1000;
+    if (timeSinceLastSent < 60) {
+        throw new ApiError(429, `Please wait ${Math.ceil(60 - timeSinceLastSent)}s before resending OTP.`);
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    tempUser.otp = hashedOtp;
+    tempUser.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    tempUser.lastSentAt = now;
+    tempUser.attempts = 0;
+    await tempUser.save();
+
+    try {
+        await sendOTP(normalizedEmail, otp);
+    } catch (error) {
+        logger.error(`Failed to resend OTP to ${normalizedEmail}:`, error);
+        throw new ApiError(500, "Failed to send verification email. Please try again.");
+    }
+
+    return sendSuccess(res, 200, null, "OTP resent successfully to your email.");
 });
 
 export const verifyOtp = asyncHandler(async (req, res) => {
@@ -186,9 +245,16 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     await OtpTemp.deleteOne({ _id: tempUser._id });
 
     logger.info(`User registered via OTP: ${user.email} (${user.role})`);
-    
-    // We navigate to login directly, no token needed for now as per the prompt logic ("navigate('/login')")
-    return sendSuccess(res, 201, { userId: user._id }, "Registration and verification successful!");
+
+    const session = issueAuthSession(res, user);
+
+    return sendSuccess(
+        res,
+        201,
+        session,
+        "Registration and verification successful!",
+        session
+    );
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -224,38 +290,19 @@ export const login = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Account is blocked");
     }
 
-    const token = jwt.sign(
-        {
-            userId: user._id.toString(),
-            role: normalizedUserRole,
-        },
-        env.jwtSecret,
-        { expiresIn: env.jwtExpiresIn }
-    );
-
     user.lastLoginAt = new Date();
     await user.save();
 
-    const safeUser = buildSafeUser(user);
-
-    res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    const session = issueAuthSession(res, user);
 
     logger.info(`User logged in: ${user.email} (${normalizedUserRole})`);
 
     return sendSuccess(
         res,
         200,
-        {
-            user: safeUser,
-            token,
-        },
-        `Welcome back, ${safeUser.fullname}!`,
-        { user: safeUser, token }
+        session,
+        `Welcome back, ${session.user.fullname}!`,
+        session
     );
 });
 

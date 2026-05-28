@@ -7,28 +7,43 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import axios from 'axios'
+import { useDispatch } from 'react-redux'
+import { authService } from '@/services/auth.service'
+import { setAuthState } from '@/redux/authSlice'
+import { getDashboardPath } from '@/utils/authRedirect'
 
 const VerifyOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const email = location.state?.email;
+    const role = location.state?.role || 'candidate';
 
     const [otpDigits, setOtpDigits] = useState(Array(6).fill(""));
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isResending, setIsResending] = useState(false);
+    const [resendCooldown, setResendCooldown] = useState(0);
     const otpRefs = useRef([]);
 
     useEffect(() => {
         if (!email) {
             toast.error("No email found. Please register again.");
-            navigate('/signup');
+            navigate('/');
         }
     }, [email, navigate]);
+
+    useEffect(() => {
+        if (resendCooldown <= 0) return undefined;
+        const timer = setInterval(() => {
+            setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
 
     const handleOtpChange = (index, value) => {
         if (!/^\d*$/.test(value)) return;
         const newOtp = [...otpDigits];
-        newOtp[index] = value;
+        newOtp[index] = value.slice(-1);
         setOtpDigits(newOtp);
         if (value && index < 5) otpRefs.current[index + 1]?.focus();
     };
@@ -44,7 +59,7 @@ const VerifyOTP = () => {
         const pastedData = e.clipboardData.getData('text/plain').replace(/\D/g, '').slice(0, 6);
         if (!pastedData) return;
         const newOtp = [...otpDigits];
-        pastedData.split('').forEach((char, i) => newOtp[i] = char);
+        pastedData.split('').forEach((char, i) => { newOtp[i] = char; });
         setOtpDigits(newOtp);
         const focusIndex = pastedData.length < 6 ? pastedData.length : 5;
         otpRefs.current[focusIndex]?.focus();
@@ -59,13 +74,33 @@ const VerifyOTP = () => {
         }
         setIsVerifying(true);
         try {
-            await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`, { email, otp: otpStr }, { withCredentials: true });
-            toast.success("Account created successfully!");
-            navigate('/login');
+            const result = await authService.verifyOtp({ email, otp: otpStr });
+            const user = result?.user || result?.data?.user || null;
+            const token = result?.token || result?.data?.token || "";
+
+            dispatch(setAuthState({ user, token }));
+            toast.success(result?.message || "Account verified successfully!");
+
+            const dashboardPath = getDashboardPath(user?.role || role);
+            navigate(dashboardPath, { replace: true });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Invalid OTP");
+            toast.error(error.message || "Invalid OTP");
         } finally {
             setIsVerifying(false);
+        }
+    };
+
+    const resendHandler = async () => {
+        if (resendCooldown > 0) return;
+        setIsResending(true);
+        try {
+            const result = await authService.resendOtp({ email });
+            toast.success(result?.message || "OTP resent to your email");
+            setResendCooldown(60);
+        } catch (error) {
+            toast.error(error.message || "Failed to resend OTP");
+        } finally {
+            setIsResending(false);
         }
     };
 
@@ -97,8 +132,9 @@ const VerifyOTP = () => {
                                     {otpDigits.map((digit, idx) => (
                                         <Input
                                             key={idx}
-                                            ref={el => otpRefs.current[idx] = el}
+                                            ref={el => { otpRefs.current[idx] = el; }}
                                             type="text"
+                                            inputMode="numeric"
                                             value={digit}
                                             onChange={(e) => handleOtpChange(idx, e.target.value)}
                                             onKeyDown={(e) => handleOtpKeyDown(idx, e)}
@@ -118,6 +154,22 @@ const VerifyOTP = () => {
                                 {isVerifying ? "Verifying..." : "Verify OTP"}
                                 <ArrowRight className="ml-2 w-4 h-4" />
                             </Button>
+
+                            <div className="text-center text-sm text-muted-foreground">
+                                Didn&apos;t receive the code?{" "}
+                                <button
+                                    type="button"
+                                    onClick={resendHandler}
+                                    disabled={isResending || resendCooldown > 0}
+                                    className="text-accent hover:underline font-semibold disabled:opacity-50"
+                                >
+                                    {isResending
+                                        ? "Sending..."
+                                        : resendCooldown > 0
+                                            ? `Resend in ${resendCooldown}s`
+                                            : "Resend OTP"}
+                                </button>
+                            </div>
                         </form>
                     </motion.div>
                 </div>

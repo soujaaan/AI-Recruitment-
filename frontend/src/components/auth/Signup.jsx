@@ -71,7 +71,7 @@ const Signup = () => {
             toast.success(`OTP sent to ${input.email}`);
 
             navigate("/verify-otp", {
-                state: { email: input.email }
+                state: { email: input.email, role: input.role }
             });
 
         } catch (error) {

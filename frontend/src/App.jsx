@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import LoadingScreen from "./components/common/LoadingScreen";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import GlobalChatListener from "./components/shared/GlobalChatListener";
+import useCurrentUser from "./hooks/useCurrentUser";
 
 const Home = lazy(() => import("./components/Home"));
 const Login = lazy(() => import("./components/auth/Login"));
@@ -103,9 +104,22 @@ const appRouter = createBrowserRouter([
       }
     ]
   },
+  {
+    element: <ProtectedRoute allowedRoles={["candidate"]} />,
+    children: [
+      {
+        path: "/dashboard/candidate",
+        element: withSuspense(<Dashboard />)
+      }
+    ]
+  },
 {
         element: <ProtectedRoute allowedRoles={["recruiter", "admin"]} />,
         children: [
+      {
+        path: "/dashboard/recruiter",
+        element: withSuspense(<Dashboard />)
+      },
       {
         path: "/admin/dashboard",
         element: withSuspense(<Dashboard />)
@@ -151,9 +165,15 @@ const appRouter = createBrowserRouter([
   }
 
 ])
+function AuthBootstrap() {
+  useCurrentUser();
+  return null;
+}
+
 function App() {
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0a0a0a]">
+      <AuthBootstrap />
       {/* Noise Texture Overlay */}
       <div className="noise-overlay" />
 

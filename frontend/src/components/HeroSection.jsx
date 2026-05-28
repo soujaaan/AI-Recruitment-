@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { setAuthState } from '@/redux/authSlice';
+import { getDashboardPath } from '@/utils/authRedirect';
 import { toast } from 'sonner';
 import { useSelector } from 'react-redux';
 
@@ -156,11 +157,7 @@ const HeroSection = () => {
             }
             toast.success(result?.message || "Welcome back!");
             
-            if (user?.role === "recruiter" || user?.role === "admin") {
-                navigate("/admin/dashboard");
-            } else {
-                navigate("/jobs");
-            }
+            navigate(getDashboardPath(user?.role));
         } catch (error) {
             const msg = error.message.toLowerCase();
             if (msg.includes('verify') || msg.includes('email')) {
@@ -196,7 +193,7 @@ const HeroSection = () => {
         try {
             await authService.register(formData);
             toast.success(`OTP sent to ${signupInput.email}`);
-            navigate("/verify-otp", { state: { email: signupInput.email } });
+            navigate("/verify-otp", { state: { email: signupInput.email, role: signupInput.role } });
         } catch (error) {
             toast.error(error.message || "Signup failed");
         } finally {

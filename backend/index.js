@@ -32,34 +32,44 @@ import path from "path";
 import { notFound, errorHandler } from "./middlewares/error.middleware.js";
 import { User } from "./models/user.model.js";
 import bcrypt from "bcryptjs";
+import { verifyEmailTransport } from "./utils/email.js";
 
 const app = express();
 
-// Trust proxy only in production with verified reverse proxy
-if (env.nodeEnv === "production") {
-    app.set("trust proxy", 1);
-}
+// Required behind Render/Vercel reverse proxies so rate-limit uses real client IPs
+app.set("trust proxy", 1);
+
+const corsOrigins = [
+    env.clientUrl,
+    "https://ai-recruitment-seven.vercel.app",
+    "http://localhost:5173",
+].filter(Boolean);
 
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: [
-    "https://ai-recruitment-seven.vercel.app"
-  ],
+  origin: corsOrigins,
   credentials: true
 }));
-app.use(
-    rateLimit({
-        windowMs: env.rateLimitWindowMs,
-        max: env.rateLimitMax,
-        standardHeaders: true,
-        legacyHeaders: false,
-        message: {
-            success: false,
-            message: "Too many requests. Please try again later.",
-        },
-    })
-);
+
+const globalLimiter = rateLimit({
+    windowMs: env.rateLimitWindowMs,
+    max: env.rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: "Too many requests. Please try again later.",
+    },
+});
+
+// Auth routes have dedicated limiters; avoid double 429 on signup/OTP
+app.use((req, res, next) => {
+    if (req.path.startsWith("/api/auth")) {
+        return next();
+    }
+    return globalLimiter(req, res, next);
+});
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
@@ -106,6 +116,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
     await connectDB();
+    await verifyEmailTransport();
     
     // Optional admin seeding (never runs by default)
     if (process.env.SEED_ADMIN === "true") {

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { authService } from "@/services/auth.service";
-import { setAuthState, clearAuth } from "@/redux/authSlice";
+import { setAuthState, clearAuth, setLoading } from "@/redux/authSlice";
 
 const useCurrentUser = () => {
     const dispatch = useDispatch();
@@ -14,12 +14,15 @@ const useCurrentUser = () => {
     });
 
     useEffect(() => {
+        dispatch(setLoading(query.isLoading || query.isFetching));
+    }, [dispatch, query.isLoading, query.isFetching]);
+
+    useEffect(() => {
         const data = query.data;
         if (!data) {
             return;
         }
 
-        // Cookie auth only; do not read token from localStorage.
         dispatch(setAuthState({ user: data?.user || data?.data?.user || null, token: "" }));
     }, [dispatch, query.data]);
 

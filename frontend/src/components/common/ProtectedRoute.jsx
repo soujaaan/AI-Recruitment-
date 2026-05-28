@@ -2,7 +2,11 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const ProtectedRoute = ({ allowedRoles = [] }) => {
-    const { user } = useSelector((store) => store.auth);
+    const { user, loading } = useSelector((store) => store.auth);
+
+    if (loading) {
+        return null;
+    }
 
     if (!user) {
         return <Navigate to="/login" replace />;

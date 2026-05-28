@@ -8,6 +8,7 @@ import Footer from './shared/Footer'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
+import { getDashboardPath } from '@/utils/authRedirect'
 
 const Home = () => {
   useGetAllJobs({ page: 1, limit: 6 });
@@ -15,10 +16,8 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user?.role === 'candidate') {
-      navigate("/jobs");
-    } else if (user?.role === 'recruiter' || user?.role === 'admin') {
-      navigate("/admin/dashboard");
+    if (user?.role) {
+      navigate(getDashboardPath(user.role));
     }
   }, [navigate, user?.role]);
 

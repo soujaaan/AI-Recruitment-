@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { loginSchema, inlineSignupSchema } from "@/schemas/auth.schema";
 import { authService } from "@/services/auth.service";
 import { setAuthState } from "@/redux/authSlice";
+import { getDashboardPath } from "@/utils/authRedirect";
 
 const cardVariants = {
   active: { scale: 1.02, opacity: 1, filter: "brightness(1)", transition: { duration: 0.4, ease: "easeOut" } },
@@ -54,11 +55,7 @@ const DualAuthSection = () => {
       const token = result?.token || result?.data?.token || "";
       dispatch(setAuthState({ user, token }));
       toast.success(result?.message || "Welcome back!");
-      if (user?.role === "recruiter" || user?.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+      navigate(getDashboardPath(user?.role));
     } catch (error) {
       toast.error(error.message || "Login failed");
     } finally {
@@ -72,7 +69,7 @@ const DualAuthSection = () => {
       const payload = { ...data, role: selectedRole };
       await authService.registerJson(payload);
       toast.success("OTP sent to your email!");
-      navigate("/verify-otp", { state: { email: data.email } });
+      navigate("/verify-otp", { state: { email: data.email, role: selectedRole } });
     } catch (error) {
       toast.error(error.message || "Signup failed");
     } finally {
