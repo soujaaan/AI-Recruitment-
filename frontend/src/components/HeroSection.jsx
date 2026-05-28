@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { setAuthState } from '@/redux/authSlice';
 import { toast } from 'sonner';
+import { useSelector } from 'react-redux';
 
 const HERO_STATS = [
     { value: "10K+", label: "Jobs" },
@@ -21,13 +22,65 @@ const HERO_STATS = [
 const HeroSection = () => {
     // Search Bar logic
     const [query, setQuery] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { allJobs } = useSelector(store => store.job);
+    const TRENDING_SEARCHES = ["MERN Developer", "Data Analyst", "Google", "Remote Jobs", "Frontend Developer"];
 
-    const searchJobHandler = () => {
-        dispatch(setSearchedQuery(query));
-        navigate("/browse");
-    }
+    const searchableItems = useMemo(() => {
+        const titles = allJobs
+            ?.map((job) => job?.title)
+            .filter(Boolean) || [];
+        const companies = allJobs
+            ?.map((job) => job?.company?.name)
+            .filter(Boolean) || [];
+
+        return [...new Set([...titles, ...companies])];
+    }, [allJobs]);
+
+    const updateSuggestions = (nextQuery) => {
+        const normalizedQuery = nextQuery.trim().toLowerCase();
+        if (!normalizedQuery) {
+            setSuggestions([]);
+            return;
+        }
+
+        const nextSuggestions = searchableItems
+            .filter((item) => item.toLowerCase().includes(normalizedQuery))
+            .slice(0, 6);
+        setSuggestions(nextSuggestions);
+    };
+
+    const handleSearch = (providedQuery) => {
+        const searchValue = typeof providedQuery === "string" ? providedQuery : query;
+        const normalizedQuery = searchValue.trim();
+        dispatch(setSearchedQuery(normalizedQuery));
+        setSuggestions([]);
+
+        if (!normalizedQuery) {
+            navigate("/browse");
+            return;
+        }
+
+        navigate(`/browse?keyword=${encodeURIComponent(normalizedQuery)}`);
+    };
+
+    const handleQueryChange = (e) => {
+        const nextQuery = e.target.value;
+        setQuery(nextQuery);
+        updateSuggestions(nextQuery);
+    };
+
+    const handleSuggestionClick = (suggestion) => {
+        setQuery(suggestion);
+        handleSearch(suggestion);
+    };
+
+    const handleTrendingClick = (term) => {
+        setQuery(term);
+        handleSearch(term);
+    };
 
     // Embedded Auth Onboarding logic
     const [activeTab, setActiveTab] = useState("signup");
@@ -213,67 +266,103 @@ const HeroSection = () => {
                             mt-6
                             flex
                             flex-col
-                            sm:flex-row
                             w-full
                             max-w-[540px]
                             gap-2
                             z-10
+                            relative
                         ">
-                            {/* Input Container */}
-                            <div className="
-                                flex-grow
-                                flex
-                                items-center
-                                bg-surface
-                                border border-border
-                                rounded-lg
-                                px-3.5
-                                h-[46px]
-                                focus-within:border-accent
-                                focus-within:ring-1
-                                focus-within:ring-accent/15
-                                transition-all duration-200
-                            ">
-                                <Search className="
-                                    w-4 h-4
-                                    text-muted-foreground
-                                    mr-2 shrink-0
-                                " />
-                                <input
-                                    type="text"
-                                    placeholder='Search roles, companies, skills...'
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && searchJobHandler()}
+                            <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                {/* Input Container */}
+                                <div className="
+                                    flex-grow
+                                    flex
+                                    items-center
+                                    bg-surface
+                                    border border-border
+                                    rounded-lg
+                                    px-3.5
+                                    h-[46px]
+                                    focus-within:border-accent
+                                    focus-within:ring-1
+                                    focus-within:ring-accent/15
+                                    transition-all duration-200
+                                ">
+                                    <Search className="
+                                        w-4 h-4
+                                        text-muted-foreground
+                                        mr-2 shrink-0
+                                    " />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        placeholder='Search roles, companies...'
+                                        onChange={handleQueryChange}
+                                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                        className="
+                                            outline-none
+                                            border-none
+                                            flex-1
+                                            text-foreground
+                                            bg-transparent
+                                            placeholder:text-muted-foreground/45
+                                            text-xs
+                                        "
+                                    />
+                                </div>
+
+                                {/* Search Button */}
+                                <Button
+                                    onClick={() => handleSearch()}
                                     className="
-                                        outline-none
-                                        border-none
-                                        flex-1
-                                        text-foreground
-                                        bg-transparent
-                                        placeholder:text-muted-foreground/45
+                                        btn-neon
+                                        rounded-lg
+                                        h-[46px]
+                                        px-5
                                         text-xs
+                                        font-bold
+                                        whitespace-nowrap
+                                        sm:w-[110px]
+                                        shrink-0
                                     "
-                                />
+                                >
+                                    Search
+                                    <ArrowRight className='ml-1.5 h-3.5 w-3.5' />
+                                </Button>
                             </div>
 
-                            {/* Search Button */}
-                            <Button
-                                onClick={searchJobHandler}
-                                className="
-                                    btn-neon
-                                    rounded-lg
-                                    h-[46px]
-                                    px-5
-                                    text-xs
-                                    font-bold
-                                    whitespace-nowrap
-                                    sm:w-[110px]
-                                    shrink-0
-                                "
-                            >
-                                Search
-                                <ArrowRight className='ml-1.5 h-3.5 w-3.5' />
-                            </Button>
+                            {suggestions.length > 0 && (
+                                <div className="absolute top-[54px] left-0 right-0 sm:right-[118px] rounded-lg border border-border/70 bg-[#0d0d0d]/95 backdrop-blur-md shadow-[0_14px_34px_rgba(0,0,0,0.45)] overflow-hidden">
+                                    {suggestions.map((suggestion) => (
+                                        <button
+                                            key={suggestion}
+                                            type="button"
+                                            onClick={() => handleSuggestionClick(suggestion)}
+                                            className="w-full text-left px-3.5 py-2.5 text-xs text-foreground hover:bg-accent/10 hover:text-accent transition-colors"
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-4 w-full max-w-[540px]">
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80 mb-2">
+                                Trending Searches
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {TRENDING_SEARCHES.map((term) => (
+                                    <button
+                                        key={term}
+                                        type="button"
+                                        onClick={() => handleTrendingClick(term)}
+                                        className="px-3 py-1.5 rounded-full border border-border/70 bg-[#0d0d0d]/50 text-[11px] font-medium text-muted-foreground hover:border-accent/40 hover:text-accent hover:bg-accent/10 transition-all"
+                                    >
+                                        {term}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Compact premium stat cards */}
@@ -585,7 +674,7 @@ const HeroSection = () => {
                                             </Button>
 
                                             <div className="text-center text-xs text-muted-foreground pt-1.5">
-                                                Don't have an account?{" "}
+                                                Don&apos;t have an account?{" "}
                                                 <button
                                                     type="button"
                                                     onClick={() => setActiveTab("signup")}

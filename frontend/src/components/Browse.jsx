@@ -1,14 +1,29 @@
-import React from 'react'
 import Navbar from './shared/Navbar'
 import Job from './Job'
 import { useSelector } from 'react-redux'
 import useGetAllJobs from '@/hooks/useGetAllJobs'
 import SectionHeader from './common/SectionHeader'
 import EmptyState from './common/EmptyState'
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 const Browse = () => {
     useGetAllJobs();
     const { allJobs } = useSelector(store => store.job);
+    const [searchParams] = useSearchParams();
+    const keyword = (searchParams.get("keyword") || "").trim().toLowerCase();
+
+    const filteredJobs = useMemo(() => {
+        if (!keyword) {
+            return allJobs;
+        }
+
+        return allJobs.filter((job) => {
+            const title = job?.title?.toLowerCase() || "";
+            const companyName = job?.company?.name?.toLowerCase() || "";
+            return title.includes(keyword) || companyName.includes(keyword);
+        });
+    }, [allJobs, keyword]);
 
     const titleObj = {
         normal: "Explore",
@@ -27,12 +42,12 @@ const Browse = () => {
                     />
 
                     <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allJobs.length <= 0 ? (
+                        {filteredJobs.length <= 0 ? (
                             <div className="col-span-full">
-                                <EmptyState title="No jobs found" description="Try again later." />
+                                <EmptyState title="No jobs found" description={keyword ? "Try a different keyword." : "Try again later."} />
                             </div>
                         ) : (
-                            allJobs.map((job) => (
+                            filteredJobs.map((job) => (
                                 <Job key={job._id} job={job} />
                             ))
                         )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { Avatar, AvatarImage } from '../ui/avatar';
@@ -98,85 +98,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Navigation */}
-                <div className='flex items-center gap-8'>
-
-                    <ul className='hidden md:flex font-medium items-center gap-6 text-foreground'>
-
-                        {!user ? (
-                            <>
-                                <li className="relative group">
-                                    <Link to="/" className="transition-colors hover:text-accent">
-                                        Home
-                                    </Link>
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                </li>
-
-                                <li className="relative group">
-                                    <Link to="/jobs" className="transition-colors hover:text-accent">
-                                        Jobs
-                                    </Link>
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                </li>
-
-                                <li className="relative group">
-                                    <Link to="/browse" className="transition-colors hover:text-accent">
-                                        Browse
-                                    </Link>
-                                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                </li>
-                            </>
-                        ) : (
-                            <>
-                                {user.role === 'candidate' ? (
-                                    <>
-                                        <li className="relative group">
-                                            <Link to="/jobs" className="transition-colors hover:text-accent">
-                                                Jobs
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-
-                                        <li className="relative group">
-                                            <Link to="/applications" className="transition-colors hover:text-accent">
-                                                Applications
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-
-                                        <li className="relative group">
-                                            <Link to="/profile" className="transition-colors hover:text-accent">
-                                                Profile
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-                                    </>
-                                ) : (
-                                    <>
-                                        <li className="relative group">
-                                            <Link to="/dashboard" className="transition-colors hover:text-accent">
-                                                Dashboard
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-
-                                        <li className="relative group">
-                                            <Link to="/admin/companies" className="transition-colors hover:text-accent">
-                                                Companies
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-
-                                        <li className="relative group">
-                                            <Link to="/admin/jobs" className="transition-colors hover:text-accent">
-                                                Jobs
-                                            </Link>
-                                            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-                                        </li>
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </ul>
+                <div className='flex items-center gap-4 md:gap-6'>
 
                     {/* Messages */}
                     {user && (
