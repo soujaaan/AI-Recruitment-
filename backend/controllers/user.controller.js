@@ -166,7 +166,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
         console.log(`[EMAIL SUCCESS] OTP email successfully sent to: ${normalizedEmail}`);
     } catch (error) {
         console.error(`[EMAIL FAILURE] Failed to send OTP email to ${normalizedEmail}: ${error.message}`);
-        throw new ApiError(500, "Failed to send verification email. Please try again.");
+        throw new ApiError(500, "Failed to send OTP email");
     }
 
     return sendSuccess(res, 200, null, "OTP sent successfully to your email.");
@@ -217,7 +217,7 @@ export const resendOtp = asyncHandler(async (req, res) => {
         console.log(`[EMAIL SUCCESS] Resent OTP email successfully sent to: ${normalizedEmail}`);
     } catch (error) {
         console.error(`[EMAIL FAILURE] Failed to resend OTP email to ${normalizedEmail}: ${error.message}`);
-        throw new ApiError(500, "Failed to send verification email. Please try again.");
+        throw new ApiError(500, "Failed to send OTP email");
     }
 
     return sendSuccess(res, 200, null, "OTP resent successfully to your email.");
@@ -276,6 +276,8 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     await user.save();
     await OtpTemp.deleteOne({ _id: tempUser._id });
 
+    console.log(`[OTP VERIFIED] OTP successfully verified for: ${normalizedEmail}`);
+    console.log(`[ACCOUNT CREATED] User registered successfully: ${user.email} (${user.role})`);
     console.log(`[VERIFICATION SUCCESS] OTP successfully verified and user created for: ${user.email} (${user.role})`);
     logger.info(`User registered via OTP: ${user.email} (${user.role})`);
 

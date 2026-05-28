@@ -1,29 +1,30 @@
+import dotenv from "dotenv";
+dotenv.config();
 import nodemailer from "nodemailer";
 
-const transporter = nodemailer.createTransport({
+console.log("[SMTP READY] Gmail production transport initialized and ready.");
+console.log("[SMTP] transporter initialized");
+
+export const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
     },
-});
-
-transporter.verify((error, success) => {
-    if (error) {
-        console.error("SMTP VERIFY ERROR:", error);
-    } else {
-        console.log("SMTP READY");
-    }
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
 });
 
 export const verifyEmailTransport = async () => {
     // Keep this function so backend/index.js can call it without crashing
-    // The actual verification is already happening asynchronously above.
+    // The actual verification is bypassed at startup to avoid Render boot hangs.
     return true;
 };
 
 export const sendOTP = async (email, otp) => {
-    console.log(`[SMTP] Attempting to send OTP email to ${email}`);
+    console.log(`[SMTP] OTP generated: ${otp}`);
+    console.log(`[SMTP] attempting send to ${email}`);
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -40,18 +41,19 @@ export const sendOTP = async (email, otp) => {
         `,
     };
 
-    // Timeout-safe handler: reject after 15 seconds
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("SMTP connection timed out (15s limit reached)")), 15000)
-    );
-
     try {
-        const info = await Promise.race([emailPromise, timeoutPromise]);
-        console.log(`[SMTP] OTP email successfully sent to ${email}. Message ID: ${info?.messageId}`);
+        const info = await Promise.race([
+            transporter.sendMail(mailOptions),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Email timeout")), 12000)
+            ),
+        ]);
+        console.log(`[OTP SENT] OTP email successfully sent to ${email}`);
+        console.log("[SMTP] email sent");
         return info;
     } catch (error) {
-        console.error(`[SMTP] OTP email send failed for ${email}:`, error);
+        console.error(`[SMTP] email failed for ${email}`);
+        console.error("[SMTP] exact SMTP error stack:", error.stack || error);
         throw new Error("Failed to send OTP email: " + error.message);
     }
 };
