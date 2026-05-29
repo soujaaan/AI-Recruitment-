@@ -79,6 +79,9 @@ const VerifyOTP = () => {
             const token = result?.token || result?.data?.token || "";
 
             dispatch(setAuthState({ user, token }));
+            if (token) {
+                localStorage.setItem("token", token);
+            }
             toast.success(result?.message || "Account verified successfully!");
 
             const dashboardPath = getDashboardPath(user?.role || role);

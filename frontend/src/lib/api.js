@@ -10,6 +10,10 @@ export const apiClient = api;
 // Cookie-based auth (canonical strategy).
 // Backend reads req.cookies.token, so we MUST NOT attach Authorization headers from localStorage.
 apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
 });
 

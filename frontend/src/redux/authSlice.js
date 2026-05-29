@@ -32,6 +32,8 @@ const authSlice = createSlice({
             state.token = "";
             state.status = "anonymous";
             state.error = null;
+            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
         },
         setAuthError:(state, action) => {
             state.error = action.payload;
