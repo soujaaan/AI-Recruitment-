@@ -285,7 +285,10 @@ export const login = asyncHandler(async (req, res) => {
     const { email, password, role } = req.body;
     const normalizedEmail = String(email).toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail }).select("+password").populate("profile");
+    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    if (user && normalizeRole(user.role) === "candidate") {
+        await user.populate("profile");
+    }
     if (!user) {
         throw new ApiError(401, "Incorrect email or password");
     }
@@ -337,7 +340,10 @@ export const logout = asyncHandler(async (req, res) => {
 
 export const updateProfile = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.id;
-    const user = await User.findById(userId).populate("profile");
+    const user = await User.findById(userId);
+    if (user && normalizeRole(user.role) === "candidate") {
+        await user.populate("profile");
+    }
 
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -519,7 +525,10 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
     const userId = req.user?.id || req.id;
-    const user = await User.findById(userId).populate("profile");
+    const user = await User.findById(userId);
+    if (user && normalizeRole(user.role) === "candidate") {
+        await user.populate("profile");
+    }
 
     if (!user) {
         throw new ApiError(404, "User not found");
