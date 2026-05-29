@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const MONGO_URI = process.env.MONGO_URI;
-const TARGET_EMAIL = 'roysoujan28@gmail.com';
+const TARGET_EMAIL = 'connect.soujan@gmail.com';
 const TARGET_PASSWORD = 'adminsoujan';
 
 // Define User Schema (same as application to ensure compatibility)
