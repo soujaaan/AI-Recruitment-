@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../shared/Navbar';
 import { ADMIN_API_END_POINT } from '@/utils/constant';
-import axios from 'axios';
+import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Users, Building2, Briefcase, FileText, Activity, LayoutDashboard } from 'lucide-react';
@@ -22,7 +22,7 @@ const SystemAdminDashboard = () => {
     const fetchAnalytics = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/analytics`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/analytics`);
             if (res.data.success) {
                 setAnalytics(res.data.data.overview);
             }
@@ -37,7 +37,7 @@ const SystemAdminDashboard = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/users`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/users`);
             if (res.data.success) {
                 setUsers(res.data.data);
             }
@@ -51,7 +51,7 @@ const SystemAdminDashboard = () => {
     const fetchCompanies = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/companies`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/companies`);
             if (res.data.success) {
                 setCompanies(res.data.data);
             }
@@ -65,7 +65,7 @@ const SystemAdminDashboard = () => {
     const fetchJobs = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/jobs`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/jobs`);
             if (res.data.success) {
                 setJobs(res.data.data);
             }
@@ -79,7 +79,7 @@ const SystemAdminDashboard = () => {
     const fetchApplications = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/applications`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/applications`);
             if (res.data.success) {
                 setApplications(res.data.data);
             }
@@ -93,7 +93,7 @@ const SystemAdminDashboard = () => {
     const fetchLogs = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${ADMIN_API_END_POINT}/logs`, { withCredentials: true });
+            const res = await apiClient.get(`${ADMIN_API_END_POINT}/logs`);
             if (res.data.success) {
                 setLogs(res.data.data);
             }
@@ -115,11 +115,10 @@ const SystemAdminDashboard = () => {
 
     const handleAction = async (method, url, data = {}, successMsg) => {
         try {
-            const res = await axios({
+            const res = await apiClient({
                 method,
                 url: `${ADMIN_API_END_POINT}${url}`,
-                data,
-                withCredentials: true
+                data
             });
             if (res.data.success) {
                 toast.success(successMsg || res.data.message);

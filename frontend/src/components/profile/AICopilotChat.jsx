@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
 import { apiClient, getApiErrorMessage } from "@/lib/api";
 
 import { motion } from "framer-motion";
@@ -110,10 +109,7 @@ const AICopilotChat = () => {
 
       const headers = getAuthHeader() ? { Authorization: getAuthHeader() } : undefined;
 
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ""}/api/ai/chat`, payload, {
-        headers,
-        withCredentials: true,
-      });
+      const res = await apiClient.post(`/api/ai/chat`, payload);
 
       const reply = res?.data?.reply;
 
