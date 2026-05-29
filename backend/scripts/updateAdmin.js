@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const MONGO_URI = process.env.MONGO_URI;
 const TARGET_EMAIL = 'connect.soujan@gmail.com';
-const TARGET_PASSWORD = 'adminsoujan';
+const TARGET_PASSWORD = 'adminhiresense';
 
 // Define User Schema (same as application to ensure compatibility)
 const userSchema = new mongoose.Schema({
@@ -99,11 +99,16 @@ async function run() {
             if (primaryAdmin.email !== TARGET_EMAIL) {
                 console.log(`Updating primary admin email from ${primaryAdmin.email} to ${TARGET_EMAIL}...`);
                 primaryAdmin.email = TARGET_EMAIL;
-                await primaryAdmin.save();
-                console.log('Admin email updated successfully.');
             } else {
                 console.log('Primary admin already has the correct email.');
             }
+
+            // CRITICAL RECOVERY: Update password for the admin record
+            console.log('Updating admin password to target password...');
+            const hashedPassword = await bcrypt.hash(TARGET_PASSWORD, 10);
+            primaryAdmin.password = hashedPassword;
+            await primaryAdmin.save();
+            console.log('Admin record successfully repaired (email & password synchronized).');
         }
 
         // 5. Validation
