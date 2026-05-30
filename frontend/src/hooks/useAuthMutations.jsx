@@ -12,6 +12,9 @@ export const useLoginMutation = () => {
         onSuccess: (data) => {
             const user = data?.user || data?.data?.user || null;
             const token = data?.token || data?.data?.token || "";
+            if (token) {
+                localStorage.setItem("token", token);
+            }
             dispatch(setAuthState({ user, token }));
             queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         },
