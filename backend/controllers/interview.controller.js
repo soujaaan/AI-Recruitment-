@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { InterviewSchedule } from "../models/interviewSchedule.model.js";
 import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
@@ -5,6 +6,7 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
+import { notificationService } from "../services/notification.service.js";
 
 const getMeetingAccessState = (schedule, now = new Date()) => {
     const start = new Date(schedule.scheduledAt);
@@ -78,6 +80,28 @@ export const scheduleInterview = asyncHandler(async (req, res) => {
         { stage: "Interview Scheduled", timestamp: new Date(), note: notes || "" },
     ];
     await application.save();
+
+    // Trigger Notification to Candidate
+    try {
+        await notificationService.createNotification({
+            recipient: candidateId,
+            type: "INTERVIEW_SCHEDULED",
+            title: "Interview Scheduled",
+            message: "Your interview has been scheduled.",
+            entityType: "InterviewSchedule",
+            entityId: schedule._id,
+            priority: "high",
+            metadata: {
+                jobId: job._id,
+                jobTitle: job.title,
+                scheduledAt: schedule.scheduledAt,
+                roundType: schedule.roundType,
+                meetingLink: schedule.meetingLink || schedule.meetLink || ""
+            }
+        });
+    } catch (notificationError) {
+        console.error("Failed to trigger interview schedule notification:", notificationError);
+    }
 
     return sendSuccess(res, 201, { schedule }, "Interview scheduled successfully");
 });
@@ -173,4 +197,113 @@ export const getMeetingLink = asyncHandler(async (req, res) => {
         { meetingLink },
         "Meeting link fetched successfully"
     );
+});
+
+export const updateInterview = asyncHandler(async (req, res) => {
+    const userId = req.user?.id || req.id;
+    const { id } = req.params;
+    const { scheduledAt, meetingLink, notes, roundType, durationMinutes, timezone } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError(400, "Invalid Interview ID format");
+    }
+
+    const schedule = await InterviewSchedule.findById(id).populate("job");
+    if (!schedule) {
+        throw new ApiError(404, "Interview not found");
+    }
+
+    if (!canManageJob(schedule.job, req.user)) {
+        throw new ApiError(403, "You do not own the job associated with this interview");
+    }
+
+    if (scheduledAt) schedule.scheduledAt = new Date(scheduledAt);
+    if (meetingLink !== undefined) {
+        schedule.meetingLink = meetingLink;
+        schedule.meetLink = meetingLink;
+    }
+    if (notes !== undefined) schedule.notes = notes;
+    if (roundType !== undefined) schedule.roundType = roundType;
+    if (durationMinutes !== undefined) schedule.durationMinutes = durationMinutes;
+    if (timezone !== undefined) schedule.timezone = timezone;
+    schedule.status = "rescheduled";
+
+    await schedule.save();
+
+    // Trigger Notification to Candidate
+    try {
+        await notificationService.createNotification({
+            recipient: schedule.candidateId || schedule.candidate,
+            type: "INTERVIEW_UPDATED",
+            title: "Interview Updated",
+            message: "Interview details have been updated.",
+            entityType: "InterviewSchedule",
+            entityId: schedule._id,
+            priority: "high",
+            metadata: {
+                jobId: schedule.jobId || schedule.job?._id,
+                jobTitle: schedule.job?.title || "your job application",
+                scheduledAt: schedule.scheduledAt,
+                roundType: schedule.roundType,
+                meetingLink: schedule.meetingLink || schedule.meetLink || ""
+            }
+        });
+    } catch (notificationError) {
+        console.error("Failed to trigger interview update notification:", notificationError);
+    }
+
+    return sendSuccess(res, 200, { schedule }, "Interview updated successfully");
+});
+
+export const cancelInterview = asyncHandler(async (req, res) => {
+    const userId = req.user?.id || req.id;
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError(400, "Invalid Interview ID format");
+    }
+
+    const schedule = await InterviewSchedule.findById(id).populate("job");
+    if (!schedule) {
+        throw new ApiError(404, "Interview not found");
+    }
+
+    if (!canManageJob(schedule.job, req.user)) {
+        throw new ApiError(403, "You do not own the job associated with this interview");
+    }
+
+    schedule.status = "cancelled";
+    await schedule.save();
+
+    // Also update corresponding application timeline/status if needed
+    const application = await Application.findById(schedule.applicationId);
+    if (application) {
+        application.timeline = [
+            ...(application.timeline || []),
+            { stage: "Interview Cancelled", timestamp: new Date() },
+        ];
+        await application.save();
+    }
+
+    // Trigger Notification to Candidate
+    try {
+        await notificationService.createNotification({
+            recipient: schedule.candidateId || schedule.candidate,
+            type: "INTERVIEW_CANCELLED",
+            title: "Interview Cancelled",
+            message: "Interview has been cancelled.",
+            entityType: "InterviewSchedule",
+            entityId: schedule._id,
+            priority: "high",
+            metadata: {
+                jobId: schedule.jobId || schedule.job?._id,
+                jobTitle: schedule.job?.title || "your job application",
+                roundType: schedule.roundType
+            }
+        });
+    } catch (notificationError) {
+        console.error("Failed to trigger interview cancel notification:", notificationError);
+    }
+
+    return sendSuccess(res, 200, { schedule }, "Interview cancelled successfully");
 });

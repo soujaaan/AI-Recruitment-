@@ -6,6 +6,8 @@ import {
     getMyInterviews,
     getJobInterviews,
     getMeetingLink,
+    updateInterview,
+    cancelInterview,
 } from "../controllers/interview.controller.js";
 
 const router = express.Router();
@@ -35,6 +37,20 @@ router.get(
     "/:id/meeting-link",
     isAuthenticated,
     getMeetingLink
+);
+
+router.patch(
+    "/:id",
+    isAuthenticated,
+    authorizeRoles("recruiter", "admin"),
+    updateInterview
+);
+
+router.delete(
+    "/:id",
+    isAuthenticated,
+    authorizeRoles("recruiter", "admin"),
+    cancelInterview
 );
 
 export default router;

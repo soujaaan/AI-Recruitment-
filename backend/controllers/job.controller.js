@@ -18,8 +18,11 @@ import {
     buildCandidateContext,
     MAX_JOBS_FOR_SCORING,
     rankJobsForCandidate,
+    scoreJobForCandidate,
 } from "../utils/jobRecommendation.util.js";
 import { ROLES } from "../constants/roles.js";
+import { User } from "../models/user.model.js";
+import { notificationService } from "../services/notification.service.js";
 
 const canManageJob = (job, user) =>
     user?.role === "admin" ||
@@ -64,6 +67,36 @@ export const postJob = asyncHandler(async (req, res) => {
         created_by: userId,
         isActive: true,
     });
+
+    // Asynchronously check for matching candidates (score > 75) and notify them
+    (async () => {
+        try {
+            const candidates = await User.find({ role: "candidate", isActive: { $ne: false } }).select("_id").lean();
+            for (const candidate of candidates) {
+                const context = await buildCandidateContext(candidate._id);
+                const scoring = scoreJobForCandidate(job, context);
+                if (scoring.matchPercent > 75) {
+                    await notificationService.createNotification({
+                        recipient: candidate._id,
+                        type: "NEW_JOB_MATCH",
+                        title: "New Job Match Found",
+                        message: `A new job matches your profile.`,
+                        entityType: "Job",
+                        entityId: job._id,
+                        priority: "medium",
+                        metadata: {
+                            jobId: job._id,
+                            jobTitle: job.title,
+                            companyName: job.company?.name || "Unknown Company",
+                            matchScore: scoring.matchPercent
+                        }
+                    });
+                }
+            }
+        } catch (matchError) {
+            logger.error("Error running AI recommendation matches for new job posting:", matchError);
+        }
+    })();
 
     return sendSuccess(
         res,

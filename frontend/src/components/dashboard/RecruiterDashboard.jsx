@@ -5,9 +5,10 @@ import SectionHeader from '../common/SectionHeader'
 import GlassCard from '../common/GlassCard'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { Briefcase, Building2, Users, ArrowRight, Plus, ListFilter, UserCheck, Calendar, UserX, Trophy } from 'lucide-react'
+import { Briefcase, Building2, Users, ArrowRight, Plus, ListFilter, UserCheck, Calendar, UserX, Trophy, Bell } from 'lucide-react'
 import useGetAllAdminJobs from '@/hooks/useGetAllAdminJobs'
 import { toMongoIdString } from '@/utils/mongoId'
+import { useNotifications } from '@/hooks/useNotifications'
 
 const RecruiterDashboard = () => {
     const { user } = useSelector(store => store.auth);
@@ -15,6 +16,7 @@ const RecruiterDashboard = () => {
     const { data: adminJobsData } = useGetAllAdminJobs();
     const adminJobs = adminJobsData?.jobs || [];
     const metrics = adminJobsData?.metrics || {};
+    const { notifications } = useNotifications();
 
     const totalApplicants =
         metrics.totalApplicants ??
@@ -134,58 +136,110 @@ const RecruiterDashboard = () => {
                     </div>
                 </div>
 
-                {/* Recent Jobs */}
-                <div className="mt-12">
-                    <div className="flex items-center justify-between mb-6">
-                        <p className="section-label">03 — Recent Postings</p>
-                        <Button variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10" onClick={() => navigate('/admin/jobs')}>
-                            View all <ArrowRight className="w-4 h-4 ml-1" />
-                        </Button>
-                    </div>
-
-                    {adminJobs.length === 0 ? (
-                        <GlassCard className="text-center py-12">
-                            <p className="text-muted-foreground">No jobs posted yet.</p>
-                            <Button className="mt-4 btn-neon" onClick={() => navigate('/admin/jobs/create')}>
-                                Post First Job
+                {/* Recent Jobs & Activity Grid */}
+                <div className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Recent Postings (Left column, span 2) */}
+                    <div className="lg:col-span-2">
+                        <div className="flex items-center justify-between mb-6">
+                            <p className="section-label">03 — Recent Postings</p>
+                            <Button variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10" onClick={() => navigate('/admin/jobs')}>
+                                View all <ArrowRight className="w-4 h-4 ml-1" />
                             </Button>
-                        </GlassCard>
-                    ) : (
-                        <div className="space-y-3">
-                            {adminJobs.slice(0, 5).map((job) => {
-                                const jobId = toMongoIdString(job._id);
-                                return (
-                                <div
-                                    key={jobId}
-                                    className="group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/20 hover:bg-surface transition-all cursor-pointer"
-                                    onClick={() => navigate(`/admin/jobs/${jobId}/applicants`)}
-                                >
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <h4 className="font-display font-semibold text-foreground group-hover:text-accent transition-colors">
-                                                {job.title}
-                                            </h4>
-                                            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                    <Building2 className="w-3.5 h-3.5" />
-                                                    {job.company?.name}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <Users className="w-3.5 h-3.5" />
-                                                    {job.applicantCount ?? 0} applicants
-                                                </span>
+                        </div>
+
+                        {adminJobs.length === 0 ? (
+                            <GlassCard className="text-center py-12">
+                                <p className="text-muted-foreground">No jobs posted yet.</p>
+                                <Button className="mt-4 btn-neon" onClick={() => navigate('/admin/jobs/create')}>
+                                    Post First Job
+                                </Button>
+                            </GlassCard>
+                        ) : (
+                            <div className="space-y-3">
+                                {adminJobs.slice(0, 5).map((job) => {
+                                    const jobId = toMongoIdString(job._id);
+                                    return (
+                                        <div
+                                            key={jobId}
+                                            className="group rounded-2xl border border-border bg-surface/60 backdrop-blur-sm p-5 hover:border-accent/20 hover:bg-surface transition-all cursor-pointer"
+                                            onClick={() => navigate(`/admin/jobs/${jobId}/applicants`)}
+                                        >
+                                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div>
+                                                    <h4 className="font-display font-semibold text-foreground group-hover:text-accent transition-colors">
+                                                        {job.title}
+                                                    </h4>
+                                                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            <Building2 className="w-3.5 h-3.5" />
+                                                            {job.company?.name}
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Users className="w-3.5 h-3.5" />
+                                                            {job.applicantCount ?? 0} applicants
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="green">{job.jobType}</Badge>
+                                                    <Badge variant="outline">{job.status || 'active'}</Badge>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="green">{job.jobType}</Badge>
-                                            <Badge variant="outline">{job.status || 'active'}</Badge>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Hiring Activity Feed (Right column, span 1) */}
+                    <div className="lg:col-span-1">
+                        <div className="flex items-center justify-between mb-6">
+                            <p className="section-label">04 — Hiring Activity Feed</p>
+                            <Button variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10" onClick={() => navigate('/notifications')}>
+                                Inbox <ArrowRight className="w-4 h-4 ml-1" />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {notifications.length === 0 ? (
+                                <GlassCard className="text-center py-12 flex flex-col items-center justify-center">
+                                    <Bell className="w-8 h-8 text-muted-foreground/45 mb-2" />
+                                    <p className="text-xs text-muted-foreground">No recent platform activities yet</p>
+                                </GlassCard>
+                            ) : (
+                                notifications.slice(0, 4).map((notif) => (
+                                    <div
+                                        key={notif._id}
+                                        onClick={() => {
+                                            if (notif.entityType === 'Application') {
+                                                navigate('/admin/applicants');
+                                            } else {
+                                                navigate('/notifications');
+                                            }
+                                        }}
+                                        className={`group p-4 rounded-2xl border transition-all cursor-pointer relative ${
+                                            notif.isRead
+                                                ? 'bg-[#070707]/60 border-border/40 hover:bg-[#070707]/80'
+                                                : 'bg-[#0b0b0b]/75 border-border hover:bg-[#0c0c0c]/90 hover:border-[#00ff88]/30'
+                                        }`}
+                                    >
+                                        {!notif.isRead && (
+                                            <span className="absolute left-0 top-4 bottom-4 w-1 bg-[#00ff88] rounded-r shadow-[0_0_8px_rgba(0,255,136,0.6)]" />
+                                        )}
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <p className={`text-[12px] font-semibold truncate ${notif.isRead ? 'text-muted-foreground' : 'text-foreground group-hover:text-[#00ff88]'}`}>
+                                                {notif.title}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                                {notif.message}
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                            })}
+                                ))
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </section>

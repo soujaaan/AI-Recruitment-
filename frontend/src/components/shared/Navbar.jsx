@@ -6,6 +6,8 @@ import { LogOut, MoonStar, Search, SunMedium, User2 } from 'lucide-react';
 import MessageButton from "@/components/navbar/MessageButton";
 import useChatStore from "@/store/chatStore";
 import MessageDropdown from "@/components/navbar/MessageDropdown";
+import NotificationBell from "@/components/navbar/NotificationBell";
+import NotificationDropdown from "@/components/navbar/NotificationDropdown";
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth, setAuthState } from '@/redux/authSlice';
@@ -53,6 +55,7 @@ const Navbar = () => {
     };
 
     const [scrolled, setScrolled] = useState(false);
+    const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -106,11 +109,30 @@ const Navbar = () => {
                             <MessageButton
                                 onToggleDropdown={(open) => {
                                     useChatStore.getState().setDropdownOpen(open);
+                                    if (open) setNotifDropdownOpen(false);
                                 }}
                             />
                             {useChatStore((s) => s.dropdownOpen) && (
                                 <MessageDropdown
                                     onClose={() => useChatStore.getState().setDropdownOpen(false)}
+                                />
+                            )}
+                        </div>
+                    )}
+
+                    {/* Notifications */}
+                    {user && (
+                        <div className="relative">
+                            <NotificationBell
+                                isOpen={notifDropdownOpen}
+                                onToggle={(open) => {
+                                    setNotifDropdownOpen(open);
+                                    if (open) useChatStore.getState().setDropdownOpen(false);
+                                }}
+                            />
+                            {notifDropdownOpen && (
+                                <NotificationDropdown
+                                    onClose={() => setNotifDropdownOpen(false)}
                                 />
                             )}
                         </div>

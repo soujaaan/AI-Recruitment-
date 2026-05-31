@@ -25,6 +25,7 @@ import profileRoute from "./routes/profile.route.js";
 import candidateRoute from "./routes/candidate.route.js";
 import chatRoute from "./routes/chat.route.js";
 import interviewRoute from "./routes/interview.route.js";
+import notificationRoute from "./routes/notification.route.js";
 import { requestLogger } from "./utils/requestLogger.js";
 import { attachChatSocket } from "./socket/chat.socket.js";
 
@@ -95,6 +96,7 @@ app.use("/api/profile", profileRoute);
 app.use("/api/candidates", candidateRoute);
 app.use("/api/chat", chatRoute);
 app.use("/api/interviews", interviewRoute);
+app.use("/api/v1/notifications", notificationRoute);
 
 // Serve uploads folder locally
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

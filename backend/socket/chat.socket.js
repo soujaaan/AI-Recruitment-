@@ -98,6 +98,9 @@ export const attachChatSocket = (httpServer) => {
   io.on("connection", (socket) => {
     const user = getUserFromSocket(socket);
 
+    // Join a private room corresponding to their userId for notification broadcasts
+    socket.join(user.id.toString());
+
     onlineUsers.set(user.id, { online: true, lastSeenAt: null });
     io.emit("online_users", Array.from(onlineUsers.keys()));
 

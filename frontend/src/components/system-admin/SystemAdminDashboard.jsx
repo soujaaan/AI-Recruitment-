@@ -4,8 +4,9 @@ import { ADMIN_API_END_POINT } from '@/utils/constant';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Users, Building2, Briefcase, FileText, Activity, LayoutDashboard } from 'lucide-react';
+import { Users, Building2, Briefcase, FileText, Activity, LayoutDashboard, Megaphone } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { notificationService } from '@/services/notification.service';
 
 const SystemAdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
@@ -18,6 +19,34 @@ const SystemAdminDashboard = () => {
     const [jobs, setJobs] = useState([]);
     const [applications, setApplications] = useState([]);
     const [logs, setLogs] = useState([]);
+
+    const [announceTitle, setAnnounceTitle] = useState('');
+    const [announceMessage, setAnnounceMessage] = useState('');
+    const [announcementLoading, setAnnouncementLoading] = useState(false);
+
+    const handleBroadcastAnnouncement = async (e) => {
+        e.preventDefault();
+        if (!announceTitle.trim() || !announceMessage.trim()) {
+            toast.error("Please fill in both the title and message");
+            return;
+        }
+
+        setAnnouncementLoading(true);
+        try {
+            const res = await notificationService.createAnnouncement({
+                title: announceTitle.trim(),
+                message: announceMessage.trim()
+            });
+            toast.success(res?.message || 'Announcement broadcast started successfully!');
+            setAnnounceTitle('');
+            setAnnounceMessage('');
+        } catch (error) {
+            console.error(error);
+            toast.error(error.message || 'Failed to broadcast announcement');
+        } finally {
+            setAnnouncementLoading(false);
+        }
+    };
 
     const fetchAnalytics = async () => {
         try {
@@ -141,6 +170,7 @@ const SystemAdminDashboard = () => {
             { id: 'companies', label: 'Companies', icon: Building2 },
             { id: 'jobs', label: 'Jobs', icon: Briefcase },
             { id: 'applications', label: 'Applications', icon: FileText },
+            { id: 'announcements', label: 'Announcements', icon: Megaphone },
             { id: 'logs', label: 'Admin Logs', icon: Activity },
         ];
 
@@ -393,6 +423,54 @@ const SystemAdminDashboard = () => {
         </motion.div>
     );
 
+    const renderAnnouncements = () => (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-[#111111] p-6 rounded-2xl border border-[#222222] shadow-[0_0_25px_rgba(0,0,0,0.4)]">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-[#00ff88]/10 border border-[#00ff88]/20 flex items-center justify-center">
+                        <Megaphone className="w-5 h-5 text-[#00ff88]" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-white">Broadcast System Announcement</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Send a platform-wide alert to all active users instantly.</p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleBroadcastAnnouncement} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Announcement Title</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Scheduled Maintenance, New Platform Release..."
+                            value={announceTitle}
+                            onChange={(e) => setAnnounceTitle(e.target.value)}
+                            required
+                            className="w-full bg-[#050505] border border-[#222222] focus:border-[#00ff88] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1.5">Announcement Message</label>
+                        <textarea
+                            placeholder="Type the message detail that will be broadcasted..."
+                            value={announceMessage}
+                            onChange={(e) => setAnnounceMessage(e.target.value)}
+                            required
+                            rows={5}
+                            className="w-full bg-[#050505] border border-[#222222] focus:border-[#00ff88] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 outline-none transition-all resize-none"
+                        />
+                    </div>
+                    <Button
+                        type="submit"
+                        disabled={announcementLoading}
+                        className="w-full btn-neon h-10 font-semibold"
+                    >
+                        {announcementLoading ? "Broadcasting..." : "Broadcast System Announcement"}
+                    </Button>
+                </form>
+            </div>
+        </motion.div>
+    );
+
     const renderLogs = () => (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="space-y-4">
@@ -431,6 +509,7 @@ const SystemAdminDashboard = () => {
                             {activeTab === 'companies' && renderCompanies()}
                             {activeTab === 'jobs' && renderJobs()}
                             {activeTab === 'applications' && renderApplications()}
+                            {activeTab === 'announcements' && renderAnnouncements()}
                             {activeTab === 'logs' && renderLogs()}
                         </>
                     )}

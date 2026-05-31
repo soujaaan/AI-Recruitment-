@@ -15,6 +15,7 @@ import {
 import { getJobRequiredSkills } from "../utils/schemaSync.js";
 import { jobApplicationMatch } from "../utils/jobApplicantCounts.js";
 
+import { notificationService } from "../services/notification.service.js";
 import mongoose from "mongoose";
 
 const CANONICAL_ATS_STATUSES = ["applied", "shortlisted", "interview", "hired", "rejected"];
@@ -174,6 +175,26 @@ export const applyJob = asyncHandler(async (req, res) => {
     } catch (err) {
         console.error("Application Creation Failed:", err);
         throw new ApiError(400, `Validation failed: ${err.message}`);
+    }
+
+    // Trigger Notification to Recruiter
+    try {
+        await notificationService.createNotification({
+            recipient: application.recruiterId || application.recruiter || job.recruiterId || job.created_by,
+            type: "NEW_APPLICATION",
+            title: "New Application Received",
+            message: "A new candidate has applied for your job.",
+            entityType: "Application",
+            entityId: application._id,
+            priority: "medium",
+            metadata: {
+                jobId: job._id,
+                jobTitle: job.title,
+                candidateName: req.user?.fullname || "A candidate"
+            }
+        });
+    } catch (notificationError) {
+        console.error("Failed to trigger application notification:", notificationError);
     }
 
     return sendSuccess(
@@ -489,6 +510,41 @@ export const updateStatus = asyncHandler(async (req, res) => {
     });
     application.applicationStatus = application.status;
     await application.save();
+
+    // Trigger Notification to Candidate
+    try {
+        if (canonicalRequestedStatus === "shortlisted") {
+            await notificationService.createNotification({
+                recipient: application.applicant || application.candidate || application.candidateId,
+                type: "APPLICATION_SHORTLISTED",
+                title: "Application Shortlisted",
+                message: "Congratulations, you have been shortlisted.",
+                entityType: "Application",
+                entityId: application._id,
+                priority: "high",
+                metadata: {
+                    jobId: application.job?._id || application.jobId || application.job,
+                    jobTitle: application.job?.title || "your job application"
+                }
+            });
+        } else if (canonicalRequestedStatus === "rejected") {
+            await notificationService.createNotification({
+                recipient: application.applicant || application.candidate || application.candidateId,
+                type: "APPLICATION_REJECTED",
+                title: "Application Update",
+                message: "Your application was not selected.",
+                entityType: "Application",
+                entityId: application._id,
+                priority: "medium",
+                metadata: {
+                    jobId: application.job?._id || application.jobId || application.job,
+                    jobTitle: application.job?.title || "your job application"
+                }
+            });
+        }
+    } catch (notificationError) {
+        console.error("Failed to trigger application status notification:", notificationError);
+    }
 
     return sendSuccess(
         res,

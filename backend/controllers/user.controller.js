@@ -6,8 +6,7 @@ import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
 
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
-import { sendOTPEmail, sendPasswordResetEmail } from "../utils/email.js";
-import { sendResetOtpEmail } from "../services/email.service.js";
+import { sendOTPEmail, sendPasswordResetEmail, sendResetOtpEmail } from "../utils/email.js";
 import crypto from "crypto";
 import { OtpTemp } from "../models/OtpTemp.js";
 
@@ -651,6 +650,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
     // Generate secure 6-digit numeric OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log("[OTP GENERATED]", email);
 
     // Hash OTP using bcrypt for security
     const hashedOtp = await bcrypt.hash(otp, 10);
@@ -661,13 +661,16 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     user.otpVerified = false;
     await user.save();
 
+    console.log("[BREVO SEND ATTEMPT]", email);
     try {
         await sendResetOtpEmail(user.email, otp);
+        console.log("[BREVO SUCCESS]", email);
         logger.info(`Password recovery OTP sent successfully to: ${user.email}`);
     } catch (error) {
         user.resetOtp = null;
         user.resetOtpExpiry = null;
         await user.save();
+        console.error("[BREVO FAILURE]", error.message);
         logger.error(`Failed to send password recovery OTP to ${user.email}:`, error);
         throw new ApiError(500, "Failed to send OTP email. Please try again.");
     }
