@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "_id",
+    "__v",
+    "createdAt",
+    "email",
+    "fullname",
+    "isActive",
+    "isBlocked",
+    "isEmailVerified",
+    "password",
+    "phoneNumber",
+    "role",
+    "updatedAt"
+  ],
+  "properties": {
+    "_id": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "__v": {
+      "type": "integer"
+    },
+    "company": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "companyId": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "createdAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "email": {
+      "type": "string"
+    },
+    "fullname": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean"
+    },
+    "isBlocked": {
+      "type": "boolean"
+    },
+    "isEmailVerified": {
+      "type": "boolean"
+    },
+    "lastLoginAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "otp": {
+      "type": "null"
+    },
+    "otpExpiry": {
+      "type": "null"
+    },
+    "password": {
+      "type": "string"
+    },
+    "phoneNumber": {
+      "type": "string"
+    },
+    "profile": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ObjectId"
+        },
+        {
+          "type": "object",
+          "required": [
+            "bio",
+            "profilePhoto",
+            "skills"
+          ],
+          "properties": {
+            "bio": {
+              "type": "string"
+            },
+            "profilePhoto": {
+              "type": "string"
+            },
+            "skills": {
+              "type": "array",
+              "items": {
+                "type": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    "profilePhoto": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/Date"
+    }
+  },
+  "$defs": {
+    "ObjectId": {
+      "type": "object",
+      "properties": {
+        "$oid": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$"
+        }
+      },
+      "required": [
+        "$oid"
+      ],
+      "additionalProperties": false
+    },
+    "Date": {
+      "type": "object",
+      "properties": {
+        "$date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "$date"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -70,5 +70,21 @@ export const authService = {
             throw new Error(getApiErrorMessage(error));
         }
     },
+    async forgotPassword(payload) {
+        try {
+            const response = await apiClient.post("/api/auth/forgot-password", payload);
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+    async resetPassword(token, payload) {
+        try {
+            const response = await apiClient.post(`/api/auth/reset-password/${token}`, payload);
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
 };
 

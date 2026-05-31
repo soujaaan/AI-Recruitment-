@@ -1,7 +1,7 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
 import { profilePhotoUpload } from "../middlewares/upload.middleware.js";
-import { sendOtp, verifyOtp, resendOtp } from "../controllers/user.controller.js";
+import { sendOtp, verifyOtp, resendOtp, forgotPassword, resetPassword } from "../controllers/user.controller.js";
 import { validateRegistration } from "../middlewares/validation.middleware.js";
 
 const router = express.Router();
@@ -38,5 +38,8 @@ const resendOtpLimiter = rateLimit({
 router.post("/send-otp", sendOtpLimiter, profilePhotoUpload, validateRegistration, sendOtp);
 router.post("/resend-otp", resendOtpLimiter, resendOtp);
 router.post("/verify-otp", verifyOtpLimiter, verifyOtp);
+
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 export default router;

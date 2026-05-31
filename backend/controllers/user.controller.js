@@ -6,7 +6,7 @@ import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
 
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
-import { sendOTPEmail } from "../utils/email.js";
+import { sendOTPEmail, sendPasswordResetEmail } from "../utils/email.js";
 import crypto from "crypto";
 import { OtpTemp } from "../models/OtpTemp.js";
 
@@ -625,3 +625,84 @@ export const deleteUser = asyncHandler(async (req, res) => {
 
     return sendSuccess(res, 200, { userId: user._id }, "User deleted successfully");
 });
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const emailField = req.body.email || "";
+    const email = String(emailField).toLowerCase().trim();
+
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const user = await User.findOne({ email });
+
+    if (user) {
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+        user.resetPasswordToken = hashedToken;
+        user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        await user.save();
+
+        const frontendUrl = process.env.FRONTEND_URL || env.clientUrl || "http://localhost:5173";
+        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+        try {
+            await sendPasswordResetEmail(user.email, resetUrl);
+            logger.info(`Password reset link sent to registered email: ${user.email}`);
+        } catch (error) {
+            user.resetPasswordToken = null;
+            user.resetPasswordExpire = null;
+            await user.save();
+            logger.error(`Failed to send password reset email to ${user.email}:`, error);
+            throw new ApiError(500, "Failed to send reset password email");
+        }
+    } else {
+        logger.warn(`Password reset requested for unregistered email: ${email}`);
+    }
+
+    return sendSuccess(res, 200, null, "If an account exists, a reset link has been sent.");
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (!token) {
+        throw new ApiError(400, "Reset token is required");
+    }
+
+    if (!password) {
+        throw new ApiError(400, "New password is required");
+    }
+
+    if (password.length < 8) {
+        throw new ApiError(400, "Password must be at least 8 characters long");
+    }
+
+    if (password !== confirmPassword) {
+        throw new ApiError(400, "Passwords do not match");
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpire: { $gt: new Date() }
+    });
+
+    if (!user) {
+        throw new ApiError(400, "Password reset token is invalid or has expired");
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpire = null;
+    await user.save();
+
+    logger.info(`Password successfully reset for user: ${user.email}`);
+
+    return sendSuccess(res, 200, null, "Password updated successfully");
+});
+

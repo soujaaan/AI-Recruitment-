@@ -1,26 +1,26 @@
 import React, { useState } from 'react'
-import Navbar from '../shared/Navbar'
-import { Label } from '../ui/label'
-import { Input } from '../ui/input'
-import { Button } from '../ui/button'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useLoginMutation } from '@/hooks/useAuthMutations'
-import { getDashboardPath } from '@/utils/authRedirect'
+import Navbar from '@/components/shared/Navbar'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useResetPasswordMutation } from '@/hooks/useAuthMutations'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 
-const Login = () => {
+const ResetPassword = () => {
+    const { token } = useParams();
+    const navigate = useNavigate();
+    const resetPasswordMutation = useResetPasswordMutation();
+
     const [input, setInput] = useState({
-        email: "",
-        password: ""
+        password: "",
+        confirmPassword: ""
     });
 
     const [showPassword, setShowPassword] = useState(false);
-
-    const navigate = useNavigate();
-    const location = useLocation();
-    const loginMutation = useLoginMutation();
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const changeEventHandler = (e) => {
         setInput({
@@ -32,31 +32,38 @@ const Login = () => {
     const submitHandler = async (e) => {
         e.preventDefault();
 
+        if (!input.password) {
+            toast.error("Please enter a new password");
+            return;
+        }
+
+        if (input.password.length < 8) {
+            toast.error("Password must be at least 8 characters long");
+            return;
+        }
+
+        if (input.password !== input.confirmPassword) {
+            toast.error("Passwords do not match");
+            return;
+        }
+
         try {
-            const result = await loginMutation.mutateAsync(input);
+            const result = await resetPasswordMutation.mutateAsync({
+                token,
+                payload: {
+                    password: input.password,
+                    confirmPassword: input.confirmPassword
+                }
+            });
 
             if (result.success) {
-                toast.success(result.message);
-
-                const user = result?.user || result?.data?.user;
-
-                // Explicitly set "token" to ensure instructions are met
-                const token = result?.token || result?.data?.token;
-                if (token) {
-                    localStorage.setItem("token", token);
-                }
-
-                const from = location.state?.from || getDashboardPath(user?.role);
-                navigate(from);
+                toast.success(result.message || "Password updated successfully");
+                setTimeout(() => {
+                    navigate("/login");
+                }, 2000); // 2 seconds redirect buffer
             }
         } catch (error) {
-            const msg = error.message.toLowerCase();
-
-            if (msg.includes('verify') || msg.includes('email')) {
-                toast.error('Please verify your email first. Check your inbox for OTP.');
-            } else {
-                toast.error(error.message);
-            }
+            toast.error(error.message || "Invalid or expired token. Please request a new link.");
         }
     };
 
@@ -66,7 +73,6 @@ const Login = () => {
 
             <section className="py-20 px-6">
                 <div className="max-w-md mx-auto">
-
                     <motion.div
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -84,72 +90,42 @@ const Login = () => {
                             hover:shadow-[0_0_70px_rgba(0,255,140,0.25)]
                         "
                     >
-
                         {/* Ambient Glow */}
                         <div className="absolute inset-0 bg-accent/5 blur-3xl opacity-20 pointer-events-none"></div>
 
                         {/* Header */}
                         <div className="relative text-center mb-8">
-
                             <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-                                <ArrowRight className="w-7 h-7 text-accent" />
+                                <ShieldCheck className="w-7 h-7 text-accent" />
                             </div>
 
                             <p className="section-label mb-2">
-                                Authentication
+                                Security
                             </p>
 
                             <h1 className="font-display font-bold text-4xl text-foreground">
-                                Welcome Back
+                                Reset Password
                             </h1>
 
                             <p className="text-muted-foreground mt-3 text-sm">
-                                Sign in to your account to continue
+                                Enter your new secure password
                             </p>
                         </div>
 
-                        {/* Form */}
+                        {/* Reset Form */}
                         <form onSubmit={submitHandler} className="relative space-y-5">
-
-                            {/* Email */}
+                            {/* New Password */}
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium text-foreground">
-                                    Email
+                                    New Password
                                 </Label>
-
-                                <Input
-                                    type="email"
-                                    name="email"
-                                    value={input.email}
-                                    onChange={changeEventHandler}
-                                    placeholder="you@example.com"
-                                    className="
-                                        h-12
-                                        bg-surface/70
-                                        border-border
-                                        focus:border-accent
-                                        focus:ring-2
-                                        focus:ring-accent/30
-                                        transition-all
-                                    "
-                                />
-                            </div>
-
-                            {/* Password */}
-                            <div className="space-y-2">
-
-                                <Label className="text-sm font-medium text-foreground">
-                                    Password
-                                </Label>
-
                                 <div className="relative">
-
                                     <Input
                                         type={showPassword ? "text" : "password"}
                                         name="password"
                                         value={input.password}
                                         onChange={changeEventHandler}
-                                        placeholder="Enter your password"
+                                        placeholder="Min 8 characters"
                                         className="
                                             h-12
                                             pr-12
@@ -160,8 +136,9 @@ const Login = () => {
                                             focus:ring-accent/30
                                             transition-all
                                         "
+                                        disabled={resetPasswordMutation.isPending}
+                                        required
                                     />
-
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
@@ -181,32 +158,60 @@ const Login = () => {
                                             <Eye className="w-5 h-5" />
                                         )}
                                     </button>
-
                                 </div>
                             </div>
 
-                            {/* Forgot Password Link */}
-                            <div className="flex justify-end pt-1">
-                                <Link
-                                    to="/forgot-password"
-                                    className="
-                                        text-sm
-                                        text-accent
-                                        hover:underline
-                                        cursor-pointer
-                                        transition-all
-                                        duration-200
-                                        font-medium
-                                    "
-                                >
-                                    Forgot Password?
-                                </Link>
+                            {/* Confirm Password */}
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground">
+                                    Confirm New Password
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        name="confirmPassword"
+                                        value={input.confirmPassword}
+                                        onChange={changeEventHandler}
+                                        placeholder="Repeat new password"
+                                        className="
+                                            h-12
+                                            pr-12
+                                            bg-surface/70
+                                            border-border
+                                            focus:border-accent
+                                            focus:ring-2
+                                            focus:ring-accent/30
+                                            transition-all
+                                        "
+                                        disabled={resetPasswordMutation.isPending}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="
+                                            absolute
+                                            right-3
+                                            top-1/2
+                                            -translate-y-1/2
+                                            text-muted-foreground
+                                            hover:text-accent
+                                            transition-colors
+                                        "
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="w-5 h-5" />
+                                        ) : (
+                                            <Eye className="w-5 h-5" />
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Button */}
                             <Button
                                 type="submit"
-                                disabled={loginMutation.isPending}
+                                disabled={resetPasswordMutation.isPending}
                                 className="
                                     w-full
                                     h-12
@@ -221,33 +226,14 @@ const Login = () => {
                                     shadow-[0_0_30px_rgba(0,255,140,0.25)]
                                 "
                             >
-                                {loginMutation.isPending ? "Signing in..." : "Sign In"}
-
-                                <ArrowRight className="ml-2 w-4 h-4" />
+                                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
                             </Button>
-
                         </form>
-
-                        {/* Footer */}
-                        <div className="relative mt-6 text-center text-sm text-muted-foreground">
-
-                            Don't have an account?{" "}
-
-                            <Link
-                                to="/signup"
-                                className="text-accent hover:underline font-medium"
-                            >
-                                Sign up
-                            </Link>
-
-                        </div>
-
                     </motion.div>
-
                 </div>
             </section>
         </div>
     )
 }
 
-export default Login
+export default ResetPassword

@@ -1,0 +1,795 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "_id",
+    "__v",
+    "aiMetadata",
+    "aiScreeningEnabled",
+    "applicantsCount",
+    "applications",
+    "company",
+    "companyId",
+    "created_by",
+    "createdAt",
+    "description",
+    "employmentType",
+    "experienceLevel",
+    "experienceRequired",
+    "expiresAt",
+    "isActive",
+    "isFlagged",
+    "jobType",
+    "location",
+    "openings",
+    "position",
+    "recruiter",
+    "recruiterId",
+    "requiredSkills",
+    "requirements",
+    "salary",
+    "salaryRange",
+    "skillsRequired",
+    "status",
+    "title",
+    "updatedAt"
+  ],
+  "properties": {
+    "_id": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "__v": {
+      "type": "integer"
+    },
+    "aiMetadata": {
+      "type": "object",
+      "required": [
+        "category",
+        "embeddings",
+        "skillWeights"
+      ],
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "embeddings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Double"
+          }
+        },
+        "skillWeights": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "Accessibility": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Agile": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Airflow": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "AWS": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Azure": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "CI/CD": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Communication": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Compliance": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "CSS3": {
+              "$ref": "#/$defs/Double"
+            },
+            "Cyber Security": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Cypress": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Design Systems": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Docker": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "ETL": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Excel": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "FastAPI": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Figma": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Firebase": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Generative AI": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Go": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "HIPAA": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Java": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "JavaScript": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Jest": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Kubernetes": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Leadership": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Linux": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "LLMs": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Microservices": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "MongoDB": {
+              "$ref": "#/$defs/Double"
+            },
+            "Networking": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "NLP": {
+              "$ref": "#/$defs/Double"
+            },
+            "Node.js": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "OAuth": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Penetration Testing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "PostgreSQL": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Power BI": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Prometheus": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Prototyping": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Python": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "PyTorch": {
+              "$ref": "#/$defs/Double"
+            },
+            "React": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "React Native": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Redis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Redux": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "REST APIs": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Security": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Selenium": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "SIEM": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Spring Boot": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "SQL": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "System Design": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Tableau": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "TensorFlow": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "Terraform": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "TypeScript": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "UI/UX": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Double"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "aiScreeningEnabled": {
+      "type": "boolean"
+    },
+    "applicantsCount": {
+      "type": "integer"
+    },
+    "applications": {
+      "type": "array",
+      "items": {
+        "type": []
+      }
+    },
+    "company": {
+      "type": "object",
+      "required": [
+        "location",
+        "logo",
+        "name",
+        "website"
+      ],
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "logo": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        }
+      }
+    },
+    "companyId": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "created_by": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "createdAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "description": {
+      "type": "string"
+    },
+    "employmentType": {
+      "type": "string"
+    },
+    "experienceLevel": {
+      "type": "string"
+    },
+    "experienceRequired": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "isActive": {
+      "type": "boolean"
+    },
+    "isFlagged": {
+      "type": "boolean"
+    },
+    "jobType": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "openings": {
+      "type": "integer"
+    },
+    "position": {
+      "type": "integer"
+    },
+    "recruiter": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "recruiterId": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "requiredSkills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "salary": {
+      "type": "string"
+    },
+    "salaryRange": {
+      "type": "object",
+      "required": [
+        "currency",
+        "display",
+        "max",
+        "min"
+      ],
+      "properties": {
+        "currency": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        },
+        "max": {
+          "type": "integer"
+        },
+        "min": {
+          "type": "integer"
+        }
+      }
+    },
+    "skillsRequired": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/Date"
+    }
+  },
+  "$defs": {
+    "ObjectId": {
+      "type": "object",
+      "properties": {
+        "$oid": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$"
+        }
+      },
+      "required": [
+        "$oid"
+      ],
+      "additionalProperties": false
+    },
+    "Double": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "$numberDouble": {
+              "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Date": {
+      "type": "object",
+      "properties": {
+        "$date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "$date"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "_id",
+    "__v",
+    "aiInsights",
+    "aiScore",
+    "appliedJobs",
+    "atsScore",
+    "bio",
+    "candidateId",
+    "certifications",
+    "completionPercentage",
+    "createdAt",
+    "education",
+    "experience",
+    "headline",
+    "interviewHistory",
+    "missingSkills",
+    "personalInfo",
+    "preferences",
+    "projects",
+    "recommendationTags",
+    "resume",
+    "resumePdfUrl",
+    "resumeStrength",
+    "savedJobs",
+    "skills",
+    "socialLinks",
+    "summary",
+    "updatedAt",
+    "user",
+    "userId"
+  ],
+  "properties": {
+    "_id": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "__v": {
+      "type": "integer"
+    },
+    "aiInsights": {
+      "type": "null"
+    },
+    "aiScore": {
+      "type": "integer"
+    },
+    "appliedJobs": {
+      "type": "array",
+      "items": {
+        "type": []
+      }
+    },
+    "atsScore": {
+      "type": "integer"
+    },
+    "bio": {
+      "type": "string"
+    },
+    "candidateId": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "certifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "issuer",
+          "name",
+          "year"
+        ],
+        "properties": {
+          "issuer": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "year": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "completionPercentage": {
+      "type": "integer"
+    },
+    "createdAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "education": {
+      "type": "object",
+      "required": [
+        "graduation"
+      ],
+      "properties": {
+        "graduation": {
+          "type": "object",
+          "required": [
+            "cgpa",
+            "college",
+            "degree",
+            "endYear",
+            "specialization",
+            "startYear",
+            "university"
+          ],
+          "properties": {
+            "cgpa": {
+              "type": "string"
+            },
+            "college": {
+              "type": "string"
+            },
+            "degree": {
+              "type": "string"
+            },
+            "endYear": {
+              "type": "string"
+            },
+            "specialization": {
+              "type": "string"
+            },
+            "startYear": {
+              "type": "string"
+            },
+            "university": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "company",
+          "current",
+          "endDate",
+          "location",
+          "responsibilities",
+          "skills",
+          "startDate",
+          "title",
+          "type"
+        ],
+        "properties": {
+          "company": {
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "responsibilities": {
+            "type": "string"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "headline": {
+      "type": "string"
+    },
+    "interviewHistory": {
+      "type": "array",
+      "items": {
+        "type": []
+      }
+    },
+    "missingSkills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "personalInfo": {
+      "type": "object",
+      "required": [
+        "email",
+        "fullName",
+        "github",
+        "linkedin",
+        "location",
+        "phone",
+        "portfolio"
+      ],
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "github": {
+          "type": "string"
+        },
+        "linkedin": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "portfolio": {
+          "type": "string"
+        }
+      }
+    },
+    "preferences": {
+      "type": "null"
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "description",
+          "duration",
+          "github",
+          "live",
+          "skills",
+          "teamSize",
+          "title"
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "github": {
+            "type": "string"
+          },
+          "live": {
+            "type": "string"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "teamSize": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommendationTags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "resume": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "resumePdfUrl": {
+      "type": "string"
+    },
+    "resumeStrength": {
+      "type": "string"
+    },
+    "savedJobs": {
+      "type": "array",
+      "items": {
+        "type": []
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "socialLinks": {
+      "type": "object",
+      "required": [
+        "github",
+        "linkedin",
+        "portfolio"
+      ],
+      "properties": {
+        "github": {
+          "type": "string"
+        },
+        "linkedin": {
+          "type": "string"
+        },
+        "portfolio": {
+          "type": "string"
+        }
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/Date"
+    },
+    "user": {
+      "$ref": "#/$defs/ObjectId"
+    },
+    "userId": {
+      "$ref": "#/$defs/ObjectId"
+    }
+  },
+  "$defs": {
+    "ObjectId": {
+      "type": "object",
+      "properties": {
+        "$oid": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$"
+        }
+      },
+      "required": [
+        "$oid"
+      ],
+      "additionalProperties": false
+    },
+    "Date": {
+      "type": "object",
+      "properties": {
+        "$date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "$date"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

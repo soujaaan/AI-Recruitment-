@@ -57,5 +57,24 @@ export const useProfileMutation = () => {
     });
 };
 
+export const useForgotPasswordMutation = () => {
+    const dispatch = useDispatch();
+    return useMutation({
+        mutationFn: (payload) => authService.forgotPassword(payload),
+        onMutate: () => dispatch(setLoading(true)),
+        onSettled: () => dispatch(setLoading(false)),
+    });
+};
+
+export const useResetPasswordMutation = () => {
+    const dispatch = useDispatch();
+    return useMutation({
+        mutationFn: ({ token, payload }) => authService.resetPassword(token, payload),
+        onMutate: () => dispatch(setLoading(true)),
+        onSettled: () => dispatch(setLoading(false)),
+    });
+};
+
+
 
 

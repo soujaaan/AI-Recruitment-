@@ -9,6 +9,8 @@ const Home = lazy(() => import("./components/Home"));
 const Login = lazy(() => import("./components/auth/Login"));
 const Signup = lazy(() => import("./components/auth/Signup"));
 const VerifyOTP = lazy(() => import("./components/auth/VerifyOTP"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Jobs = lazy(() => import("./components/Jobs"));
 const Browse = lazy(() => import("./components/Browse"));
 const Profile = lazy(() => import("./components/Profile"));
@@ -48,6 +50,14 @@ const appRouter = createBrowserRouter([
   {
     path: '/verify-otp',
     element: withSuspense(<VerifyOTP />)
+  },
+  {
+    path: '/forgot-password',
+    element: withSuspense(<ForgotPassword />)
+  },
+  {
+    path: '/reset-password/:token',
+    element: withSuspense(<ResetPassword />)
   },
   {
     path: "/jobs",
