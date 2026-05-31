@@ -79,6 +79,7 @@ app.use(requestLogger);
 
 // API Routes
 app.use("/api/auth", authRoute);
+app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/job", jobRoute);
 app.use("/api/v1/application", applicationRoute);

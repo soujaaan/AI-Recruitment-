@@ -662,7 +662,7 @@ const HeroSection = () => {
                                                 <span>Keep me signed in</span>
                                                 <button
                                                     type="button"
-                                                    onClick={() => toast.info("Password reset instructions sent (Demo mode).")}
+                                                    onClick={() => navigate("/forgot-password")}
                                                     className="text-accent hover:underline font-semibold"
                                                 >
                                                     Forgot password?

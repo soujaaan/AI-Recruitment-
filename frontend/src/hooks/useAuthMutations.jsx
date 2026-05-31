@@ -66,10 +66,19 @@ export const useForgotPasswordMutation = () => {
     });
 };
 
+export const useVerifyResetOtpMutation = () => {
+    const dispatch = useDispatch();
+    return useMutation({
+        mutationFn: (payload) => authService.verifyResetOtp(payload),
+        onMutate: () => dispatch(setLoading(true)),
+        onSettled: () => dispatch(setLoading(false)),
+    });
+};
+
 export const useResetPasswordMutation = () => {
     const dispatch = useDispatch();
     return useMutation({
-        mutationFn: ({ token, payload }) => authService.resetPassword(token, payload),
+        mutationFn: (payload) => authService.resetPassword(payload),
         onMutate: () => dispatch(setLoading(true)),
         onSettled: () => dispatch(setLoading(false)),
     });

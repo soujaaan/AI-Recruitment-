@@ -72,15 +72,23 @@ export const authService = {
     },
     async forgotPassword(payload) {
         try {
-            const response = await apiClient.post("/api/auth/forgot-password", payload);
+            const response = await apiClient.post("/api/v1/auth/forgot-password", payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));
         }
     },
-    async resetPassword(token, payload) {
+    async verifyResetOtp(payload) {
         try {
-            const response = await apiClient.post(`/api/auth/reset-password/${token}`, payload);
+            const response = await apiClient.post("/api/v1/auth/verify-reset-otp", payload);
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+    async resetPassword(payload) {
+        try {
+            const response = await apiClient.post("/api/v1/auth/reset-password", payload);
             return unwrap(response);
         } catch (error) {
             throw new Error(getApiErrorMessage(error));

@@ -10,6 +10,7 @@ const Login = lazy(() => import("./components/auth/Login"));
 const Signup = lazy(() => import("./components/auth/Signup"));
 const VerifyOTP = lazy(() => import("./components/auth/VerifyOTP"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Jobs = lazy(() => import("./components/Jobs"));
 const Browse = lazy(() => import("./components/Browse"));
@@ -56,7 +57,11 @@ const appRouter = createBrowserRouter([
     element: withSuspense(<ForgotPassword />)
   },
   {
-    path: '/reset-password/:token',
+    path: '/verify-reset-otp',
+    element: withSuspense(<VerifyOtp />)
+  },
+  {
+    path: '/reset-password',
     element: withSuspense(<ResetPassword />)
   },
   {

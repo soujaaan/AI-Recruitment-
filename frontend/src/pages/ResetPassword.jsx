@@ -1,18 +1,26 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/shared/Navbar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useResetPasswordMutation } from '@/hooks/useAuthMutations'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 
 const ResetPassword = () => {
-    const { token } = useParams();
+    const location = useLocation();
     const navigate = useNavigate();
     const resetPasswordMutation = useResetPasswordMutation();
+    const email = location.state?.email;
+
+    useEffect(() => {
+        if (!email) {
+            toast.error("Please verify your OTP code first before resetting your password.");
+            navigate('/forgot-password');
+        }
+    }, [email, navigate]);
 
     const [input, setInput] = useState({
         password: "",
@@ -49,11 +57,9 @@ const ResetPassword = () => {
 
         try {
             const result = await resetPasswordMutation.mutateAsync({
-                token,
-                payload: {
-                    password: input.password,
-                    confirmPassword: input.confirmPassword
-                }
+                email,
+                password: input.password,
+                confirmPassword: input.confirmPassword
             });
 
             if (result.success) {
@@ -63,9 +69,11 @@ const ResetPassword = () => {
                 }, 2000); // 2 seconds redirect buffer
             }
         } catch (error) {
-            toast.error(error.message || "Invalid or expired token. Please request a new link.");
+            toast.error(error.message || "Failed to reset password. Please try again.");
         }
     };
+
+    if (!email) return null;
 
     return (
         <div className="bg-[#0a0a0a] min-h-screen">
@@ -108,7 +116,8 @@ const ResetPassword = () => {
                             </h1>
 
                             <p className="text-muted-foreground mt-3 text-sm">
-                                Enter your new secure password
+                                Enter your new secure password for <br />
+                                <span className="font-medium text-accent">{email}</span>
                             </p>
                         </div>
 
@@ -226,7 +235,7 @@ const ResetPassword = () => {
                                     shadow-[0_0_30px_rgba(0,255,140,0.25)]
                                 "
                             >
-                                {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                                {resetPasswordMutation.isPending ? "Updating Password..." : "Update Password"}
                             </Button>
                         </form>
                     </motion.div>

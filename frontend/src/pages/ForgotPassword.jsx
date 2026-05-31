@@ -3,7 +3,7 @@ import Navbar from '@/components/shared/Navbar'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForgotPasswordMutation } from '@/hooks/useAuthMutations'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -11,7 +11,7 @@ import { KeyRound, ArrowLeft } from 'lucide-react'
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState("");
-    const [isSubmitted, setIsSubmitted] = useState(false);
+    const navigate = useNavigate();
     const forgotPasswordMutation = useForgotPasswordMutation();
 
     const submitHandler = async (e) => {
@@ -26,8 +26,8 @@ const ForgotPassword = () => {
         try {
             const result = await forgotPasswordMutation.mutateAsync({ email: normalizedEmail });
             if (result.success) {
-                setIsSubmitted(true);
-                toast.success(result.message || "Password reset link sent successfully!");
+                toast.success(result.message || "OTP sent successfully!");
+                navigate("/verify-reset-otp", { state: { email: normalizedEmail } });
             }
         } catch (error) {
             toast.error(error.message || "Something went wrong. Please try again.");
@@ -75,72 +75,56 @@ const ForgotPassword = () => {
                             </h1>
 
                             <p className="text-muted-foreground mt-3 text-sm">
-                                Enter your registered email address
+                                Enter your registered email to receive a 6-digit OTP
                             </p>
                         </div>
 
-                        {!isSubmitted ? (
-                            /* Request Form */
-                            <form onSubmit={submitHandler} className="relative space-y-5">
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-medium text-foreground">
-                                        Email Address
-                                    </Label>
-                                    <Input
-                                        type="email"
-                                        name="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="you@example.com"
-                                        className="
-                                            h-12
-                                            bg-surface/70
-                                            border-border
-                                            focus:border-accent
-                                            focus:ring-2
-                                            focus:ring-accent/30
-                                            transition-all
-                                        "
-                                        disabled={forgotPasswordMutation.isPending}
-                                        required
-                                    />
-                                </div>
-
-                                <Button
-                                    type="submit"
-                                    disabled={forgotPasswordMutation.isPending}
+                        {/* Request Form */}
+                        <form onSubmit={submitHandler} className="relative space-y-5">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground">
+                                    Email Address
+                                </Label>
+                                <Input
+                                    type="email"
+                                    name="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="you@example.com"
                                     className="
-                                        w-full
                                         h-12
-                                        mt-2
-                                        rounded-xl
-                                        bg-accent
-                                        text-black
-                                        font-semibold
-                                        hover:brightness-110
+                                        bg-surface/70
+                                        border-border
+                                        focus:border-accent
+                                        focus:ring-2
+                                        focus:ring-accent/30
                                         transition-all
-                                        duration-300
-                                        shadow-[0_0_30px_rgba(0,255,140,0.25)]
                                     "
-                                >
-                                    {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
-                                </Button>
-                            </form>
-                        ) : (
-                            /* Success State */
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="relative text-center py-4 space-y-6"
+                                    disabled={forgotPasswordMutation.isPending}
+                                    required
+                                />
+                            </div>
+
+                            <Button
+                                type="submit"
+                                disabled={forgotPasswordMutation.isPending}
+                                className="
+                                    w-full
+                                    h-12
+                                    mt-2
+                                    rounded-xl
+                                    bg-accent
+                                    text-black
+                                    font-semibold
+                                    hover:brightness-110
+                                    transition-all
+                                    duration-300
+                                    shadow-[0_0_30px_rgba(0,255,140,0.25)]
+                                "
                             >
-                                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm">
-                                    Password reset link has been sent to your email.
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    If an account exists for <span className="text-accent font-medium">{email}</span>, you will receive an email shortly with directions to reset your password.
-                                </p>
-                            </motion.div>
-                        )}
+                                {forgotPasswordMutation.isPending ? "Sending OTP..." : "Send OTP"}
+                            </Button>
+                        </form>
 
                         {/* Footer */}
                         <div className="relative mt-6 text-center">

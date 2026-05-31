@@ -7,6 +7,7 @@ import { ResumeAnalysis } from "../models/resumeAnalysis.model.js";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { sendOTPEmail, sendPasswordResetEmail } from "../utils/email.js";
+import { sendResetOtpEmail } from "../services/email.service.js";
 import crypto from "crypto";
 import { OtpTemp } from "../models/OtpTemp.js";
 
@@ -636,44 +637,107 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
     const user = await User.findOne({ email });
 
-    if (user) {
-        const resetToken = crypto.randomBytes(32).toString("hex");
-        const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-
-        user.resetPasswordToken = hashedToken;
-        user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-        await user.save();
-
-        const frontendUrl = process.env.FRONTEND_URL || env.clientUrl || "http://localhost:5173";
-        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-
-        try {
-            await sendPasswordResetEmail(user.email, resetUrl);
-            logger.info(`Password reset link sent to registered email: ${user.email}`);
-        } catch (error) {
-            user.resetPasswordToken = null;
-            user.resetPasswordExpire = null;
-            await user.save();
-            logger.error(`Failed to send password reset email to ${user.email}:`, error);
-            throw new ApiError(500, "Failed to send reset password email");
-        }
-    } else {
-        logger.warn(`Password reset requested for unregistered email: ${email}`);
+    if (!user) {
+        throw new ApiError(404, "No account associated with this email address");
     }
 
-    return sendSuccess(res, 200, null, "If an account exists, a reset link has been sent.");
+    if (user.isActive === false) {
+        throw new ApiError(403, "Account is currently inactive. Please contact support.");
+    }
+
+    if (user.isBlocked) {
+        throw new ApiError(403, "Account is blocked. Please contact support.");
+    }
+
+    // Generate secure 6-digit numeric OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hash OTP using bcrypt for security
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    user.resetOtp = hashedOtp;
+    user.resetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpAttempts = 0;
+    user.otpVerified = false;
+    await user.save();
+
+    try {
+        await sendResetOtpEmail(user.email, otp);
+        logger.info(`Password recovery OTP sent successfully to: ${user.email}`);
+    } catch (error) {
+        user.resetOtp = null;
+        user.resetOtpExpiry = null;
+        await user.save();
+        logger.error(`Failed to send password recovery OTP to ${user.email}:`, error);
+        throw new ApiError(500, "Failed to send OTP email. Please try again.");
+    }
+
+    return sendSuccess(res, 200, null, "OTP sent successfully");
+});
+
+export const verifyResetOtp = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP are required");
+    }
+
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!user.resetOtp || !user.resetOtpExpiry) {
+        throw new ApiError(400, "No active password recovery request found. Please request a new OTP.");
+    }
+
+    // Check attempts
+    if (user.otpAttempts >= 5) {
+        user.resetOtp = null;
+        user.resetOtpExpiry = null;
+        await user.save();
+        throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+    }
+
+    // Check expiry
+    if (new Date() > user.resetOtpExpiry) {
+        throw new ApiError(400, "OTP has expired. Please request a new one.");
+    }
+
+    // Verify
+    const isOtpValid = await bcrypt.compare(otp, user.resetOtp);
+    if (!isOtpValid) {
+        user.otpAttempts += 1;
+        await user.save();
+
+        if (user.otpAttempts >= 5) {
+            user.resetOtp = null;
+            user.resetOtpExpiry = null;
+            await user.save();
+            throw new ApiError(429, "Too many failed attempts. Please request a new OTP.");
+        }
+
+        throw new ApiError(400, "Invalid OTP");
+    }
+
+    user.otpVerified = true;
+    await user.save();
+
+    logger.info(`OTP successfully verified for: ${user.email}`);
+
+    return sendSuccess(res, 200, null, "OTP verified");
 });
 
 export const resetPassword = asyncHandler(async (req, res) => {
-    const { token } = req.params;
-    const { password, confirmPassword } = req.body;
+    const { email, password, confirmPassword } = req.body;
 
-    if (!token) {
-        throw new ApiError(400, "Reset token is required");
+    if (!email) {
+        throw new ApiError(400, "Email is required");
     }
 
     if (!password) {
-        throw new ApiError(400, "New password is required");
+        throw new ApiError(400, "Password is required");
     }
 
     if (password.length < 8) {
@@ -684,25 +748,30 @@ export const resetPassword = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Passwords do not match");
     }
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-    const user = await User.findOne({
-        resetPasswordToken: hashedToken,
-        resetPasswordExpire: { $gt: new Date() }
-    });
+    const normalizedEmail = String(email).toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-        throw new ApiError(400, "Password reset token is invalid or has expired");
+        throw new ApiError(404, "User not found");
+    }
+
+    if (user.otpVerified !== true) {
+        throw new ApiError(400, "OTP has not been verified for this email.");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpire = null;
+    
+    // Clear recovery fields
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+    user.otpAttempts = 0;
+    user.otpVerified = false;
+    
     await user.save();
 
-    logger.info(`Password successfully reset for user: ${user.email}`);
+    logger.info(`Password successfully reset for: ${user.email}`);
 
-    return sendSuccess(res, 200, null, "Password updated successfully");
+    return sendSuccess(res, 200, null, "Password reset successful");
 });
 
