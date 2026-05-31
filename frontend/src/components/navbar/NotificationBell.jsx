@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
@@ -7,11 +7,23 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 export const NotificationBell = ({ isOpen, onToggle }) => {
     const { unreadCount } = useNotifications();
+    const [animateBell, setAnimateBell] = useState(false);
 
     const badgeText = useMemo(() => {
         if (!unreadCount) return "";
         return unreadCount > 99 ? "99+" : String(unreadCount);
     }, [unreadCount]);
+
+    // Shake the bell when a new socket notification is pushed
+    useEffect(() => {
+        const handleNewNotif = () => {
+            setAnimateBell(true);
+            const timer = setTimeout(() => setAnimateBell(false), 2000);
+            return () => clearTimeout(timer);
+        };
+        window.addEventListener("new_notification_arrived", handleNewNotif);
+        return () => window.removeEventListener("new_notification_arrived", handleNewNotif);
+    }, []);
 
     return (
         <div className="relative">
@@ -32,7 +44,7 @@ export const NotificationBell = ({ isOpen, onToggle }) => {
                                 : "border-white/10 hover:bg-white/5 hover:border-[#00ff88]/30 hover:text-[#00ff88] hover:shadow-[0_0_18px_rgba(0,255,136,0.25)]"
                         }`}
                     >
-                        <Bell className={`w-5 h-5 ${unreadCount > 0 && !isOpen ? "animate-[swing_2s_ease-in-out_infinite]" : ""}`} />
+                        <Bell className={`w-5 h-5 ${animateBell ? "animate-[swing_2s_ease-in-out_infinite]" : ""}`} />
                     </Button>
                 </motion.div>
             </Tooltip>

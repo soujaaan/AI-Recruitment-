@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { notificationService } from "@/services/notification.service";
 import { getSocket } from "@/lib/socket";
@@ -12,6 +12,7 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const [pagination, setPagination] = useState({
         total: 0,
         page: 1,
@@ -22,7 +23,7 @@ export const NotificationProvider = ({ children }) => {
     const [category, setCategory] = useState("all");
     const [page, setPage] = useState(1);
 
-    const fetchNotifications = useCallback(async (pageNum = 1, cat = "all") => {
+    const fetchNotifications = useCallback(async (pageNum = 1, cat = "all", append = false) => {
         if (!user) return;
         setLoading(true);
         setError(null);
@@ -32,7 +33,19 @@ export const NotificationProvider = ({ children }) => {
                 limit: 10,
                 category: cat !== "all" ? cat : undefined,
             });
-            setNotifications(res?.notifications || []);
+            
+            const fetched = res?.notifications || [];
+            if (append) {
+                setNotifications((prev) => {
+                    // Prevent duplicates
+                    const existingIds = new Set(prev.map(n => n._id));
+                    const uniqueNew = fetched.filter(n => !existingIds.has(n._id));
+                    return [...prev, ...uniqueNew];
+                });
+            } else {
+                setNotifications(fetched);
+            }
+            
             setPagination(res?.pagination || { total: 0, page: pageNum, limit: 10, pages: 1 });
         } catch (err) {
             setError(err.message || "Failed to load notifications");
@@ -61,7 +74,6 @@ export const NotificationProvider = ({ children }) => {
         try {
             await notificationService.markAsRead(id);
         } catch (err) {
-            // Revert on error
             fetchNotifications(page, category);
             fetchUnreadCount();
             toast.error("Failed to mark notification as read");
@@ -101,16 +113,46 @@ export const NotificationProvider = ({ children }) => {
         }
     };
 
-    // Initial load and category/page change listener
-    useEffect(() => {
-        if (user) {
+    const deleteBulkNotifications = async (ids) => {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        
+        const deletedUnreadCount = notifications.filter(
+            (n) => ids.includes(n._id) && !n.isRead
+        ).length;
+
+        // Optimistic update
+        setNotifications((prev) => prev.filter((n) => !ids.includes(n._id)));
+        setUnreadCount((prev) => Math.max(0, prev - deletedUnreadCount));
+
+        try {
+            await notificationService.deleteBulkNotifications(ids);
+            toast.success("Selected notifications deleted");
+        } catch (err) {
             fetchNotifications(page, category);
             fetchUnreadCount();
+            toast.error("Failed to delete selected notifications");
+        }
+    };
+
+    const loadMore = () => {
+        const nextPage = page + 1;
+        if (nextPage <= pagination.pages) {
+            setPage(nextPage);
+            fetchNotifications(nextPage, category, true);
+        }
+    };
+
+    // Initial load and category change listener
+    useEffect(() => {
+        if (user) {
+            fetchNotifications(1, category, false);
+            fetchUnreadCount();
+            setPage(1);
         } else {
             setNotifications([]);
             setUnreadCount(0);
         }
-    }, [user, category, page, fetchNotifications, fetchUnreadCount]);
+    }, [user, category, fetchNotifications, fetchUnreadCount]);
 
     // Set up Socket.IO listener for new notifications
     useEffect(() => {
@@ -122,11 +164,15 @@ export const NotificationProvider = ({ children }) => {
                 setNotifications((prev) => [notification, ...prev]);
                 setUnreadCount((prev) => prev + 1);
 
-                // Show slide-up notification toast
-                toast(notification.title || "New Notification", {
+                // Auto animate trigger via custom event
+                window.dispatchEvent(new CustomEvent("new_notification_arrived", { detail: notification }));
+
+                // Show standard Sonner toast
+                toast.info(notification.title || "New Activity Alert", {
                     description: notification.message,
+                    duration: 5000,
                     action: {
-                        label: "View Center",
+                        label: "View Inbox",
                         onClick: () => {
                             window.location.href = "/notifications";
                         },
@@ -141,10 +187,20 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [user]);
 
+    // Dynamic client-side instant search filtering
+    const filteredNotifications = useMemo(() => {
+        if (!searchQuery.trim()) return notifications;
+        const query = searchQuery.toLowerCase().trim();
+        return notifications.filter(
+            (n) => n.title?.toLowerCase().includes(query) || n.message?.toLowerCase().includes(query)
+        );
+    }, [notifications, searchQuery]);
+
     return (
         <NotificationContext.Provider
             value={{
-                notifications,
+                notifications: filteredNotifications,
+                rawNotifications: notifications,
                 unreadCount,
                 loading,
                 error,
@@ -153,11 +209,15 @@ export const NotificationProvider = ({ children }) => {
                 setCategory,
                 page,
                 setPage,
+                searchQuery,
+                setSearchQuery,
                 fetchNotifications,
                 fetchUnreadCount,
                 markAsRead,
                 markAllAsRead,
                 deleteNotification,
+                deleteBulkNotifications,
+                loadMore,
             }}
         >
             {children}

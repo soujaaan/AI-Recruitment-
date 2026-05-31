@@ -516,7 +516,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
         if (canonicalRequestedStatus === "shortlisted") {
             await notificationService.createNotification({
                 recipient: application.applicant || application.candidate || application.candidateId,
-                type: "APPLICATION_SHORTLISTED",
+                type: "APPLICATION_STATUS_UPDATED",
                 title: "Application Shortlisted",
                 message: "Congratulations, you have been shortlisted.",
                 entityType: "Application",
@@ -530,7 +530,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
         } else if (canonicalRequestedStatus === "rejected") {
             await notificationService.createNotification({
                 recipient: application.applicant || application.candidate || application.candidateId,
-                type: "APPLICATION_REJECTED",
+                type: "APPLICATION_STATUS_UPDATED",
                 title: "Application Update",
                 message: "Your application was not selected.",
                 entityType: "Application",

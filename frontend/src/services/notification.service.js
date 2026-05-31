@@ -48,6 +48,15 @@ export const notificationService = {
         }
     },
 
+    async deleteBulkNotifications(ids) {
+        try {
+            const response = await apiClient.post("/api/v1/notifications/bulk-delete", { ids });
+            return unwrap(response);
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
+    },
+
     async createAnnouncement(payload) {
         try {
             const response = await apiClient.post("/api/v1/notifications/system-announcement", payload);

@@ -7,6 +7,7 @@ import {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotification,
+    deleteBulkNotifications,
     createSystemAnnouncement,
 } from "../controllers/notification.controller.js";
 
@@ -26,6 +27,9 @@ router.patch("/read-all", isAuthenticated, markAllNotificationsAsRead);
 
 // Delete single notification
 router.delete("/:id", isAuthenticated, deleteNotification);
+
+// Bulk delete notifications
+router.post("/bulk-delete", isAuthenticated, deleteBulkNotifications);
 
 // Create system wide announcements (Admin only)
 router.post(

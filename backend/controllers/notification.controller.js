@@ -60,6 +60,19 @@ export const deleteNotification = asyncHandler(async (req, res) => {
     return sendSuccess(res, 200, {}, "Notification deleted successfully");
 });
 
+export const deleteBulkNotifications = asyncHandler(async (req, res) => {
+    const userId = req.user?.id || req.id;
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids)) {
+        throw new ApiError(400, "Ids array is required");
+    }
+
+    const result = await notificationService.deleteBulkNotifications(ids, userId);
+
+    return sendSuccess(res, 200, result, "Selected notifications deleted successfully");
+});
+
 export const createSystemAnnouncement = asyncHandler(async (req, res) => {
     const { title, message } = req.body;
 

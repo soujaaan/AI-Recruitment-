@@ -69,9 +69,13 @@ export const notificationService = {
             if (category === "unread") {
                 query.isRead = false;
             } else if (category === "interview") {
-                query.type = { $in: ["INTERVIEW_SCHEDULED", "INTERVIEW_UPDATED", "INTERVIEW_CANCELLED"] };
+                query.type = { $in: ["INTERVIEW_SCHEDULED", "INTERVIEW_CANCELLED", "INTERVIEW_RESPONSE", "INTERVIEW_UPDATED"] };
             } else if (category === "applications") {
-                query.type = { $in: ["NEW_APPLICATION", "APPLICATION_SHORTLISTED", "APPLICATION_REJECTED"] };
+                query.type = { $in: ["NEW_APPLICATION", "APPLICATION_STATUS_UPDATED", "APPLICATION_SHORTLISTED", "APPLICATION_REJECTED"] };
+            } else if (category === "messages") {
+                query.type = { $in: ["CHAT_MESSAGE", "NEW_MESSAGE"] };
+            } else if (category === "recommendations") {
+                query.type = { $in: ["JOB_RECOMMENDED", "AI_MATCH_FOUND", "NEW_JOB_MATCH", "RESUME_ANALYZED"] };
             } else if (category === "system") {
                 query.type = { $in: ["SYSTEM_ANNOUNCEMENT", "ADMIN_ALERT"] };
             }
@@ -157,6 +161,22 @@ export const notificationService = {
         }
 
         return notification;
+    },
+
+    async deleteBulkNotifications(ids, userId) {
+        if (!Array.isArray(ids)) {
+            throw new ApiError(400, "Ids parameter must be an array");
+        }
+        // Filter out invalid ObjectIds
+        const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+        if (validIds.length === 0) {
+            return { deletedCount: 0 };
+        }
+        
+        return await Notification.deleteMany({
+            _id: { $in: validIds },
+            recipient: userId
+        });
     },
 };
 

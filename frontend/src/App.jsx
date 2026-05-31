@@ -30,7 +30,7 @@ const CompanyCreate = lazy(() => import("./components/admin/CompanyCreate"));
 const SystemAdminDashboard = lazy(() => import("./components/system-admin/SystemAdminDashboard"));
 const CandidateProfile = lazy(() => import("./pages/recruiter/CandidateProfile"));
 const AdminApplicants = lazy(() => import("./pages/admin/AdminApplicants"));
-const NotificationCenter = lazy(() => import("./pages/notifications/NotificationCenter"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 
 const withSuspense = (element) => (
   <Suspense fallback={<LoadingScreen label="Loading page..." />}>{element}</Suspense>
@@ -98,7 +98,7 @@ const appRouter = createBrowserRouter([
       },
       {
         path: "/notifications",
-        element: withSuspense(<NotificationCenter />)
+        element: withSuspense(<NotificationsPage />)
       }
     ]
   },

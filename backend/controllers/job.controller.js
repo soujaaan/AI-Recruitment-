@@ -78,7 +78,7 @@ export const postJob = asyncHandler(async (req, res) => {
                 if (scoring.matchPercent > 75) {
                     await notificationService.createNotification({
                         recipient: candidate._id,
-                        type: "NEW_JOB_MATCH",
+                        type: "JOB_RECOMMENDED",
                         title: "New Job Match Found",
                         message: `A new job matches your profile.`,
                         entityType: "Job",

@@ -104,7 +104,7 @@ const runTests = async () => {
         console.log("=== 🧪 TEST CASE 2: STATUS UPDATE (SHORTLIST) NOTIFICATION ===");
         const shortlistNotif = await notificationService.createNotification({
             recipient: candidate._id,
-            type: "APPLICATION_SHORTLISTED",
+            type: "APPLICATION_STATUS_UPDATED",
             title: "Application Shortlisted",
             message: "Congratulations, you have been shortlisted.",
             entityType: "Application",
@@ -120,7 +120,7 @@ const runTests = async () => {
         console.log(`  - Recipient: ${shortlistNotif.recipient} (Candidate)`);
         console.log(`  - Message: "${shortlistNotif.message}"`);
 
-        if (String(shortlistNotif.recipient) === String(candidate._id) && shortlistNotif.type === "APPLICATION_SHORTLISTED") {
+        if (String(shortlistNotif.recipient) === String(candidate._id) && shortlistNotif.type === "APPLICATION_STATUS_UPDATED") {
             console.log("✅ TEST CASE 2 PASSED\n");
         } else {
             throw new Error("Shortlist Notification mismatch");
@@ -193,7 +193,7 @@ const runTests = async () => {
         console.log("=== 🧪 TEST CASE 7: PAGINATION AND CATEGORIES FILTERS ===");
         // Add a few more mock alerts to test filters
         await notificationService.createNotification({ recipient: candidate._id, type: "SYSTEM_ANNOUNCEMENT", title: "Announce", message: "Hello", priority: "low" });
-        await notificationService.createNotification({ recipient: candidate._id, type: "NEW_JOB_MATCH", title: "Match", message: "Match Found", priority: "medium" });
+        await notificationService.createNotification({ recipient: candidate._id, type: "JOB_RECOMMENDED", title: "Match", message: "Match Found", priority: "medium" });
 
         // Retrieve "all"
         const allFeed = await notificationService.getUserNotifications(candidate._id, {}, { page: 1, limit: 10 });
@@ -224,6 +224,22 @@ const runTests = async () => {
             console.log("✅ TEST CASE 8 PASSED\n");
         } else {
             throw new Error("Failed to delete notification record from DB");
+        }
+
+        console.log("=== 🧪 TEST CASE 8B: BULK DELETE NOTIFICATIONS ===");
+        // Let's create two temporary notifications to bulk delete
+        const b1 = await notificationService.createNotification({ recipient: candidate._id, type: "SYSTEM_ANNOUNCEMENT", title: "Bulk 1", message: "B1", priority: "low" });
+        const b2 = await notificationService.createNotification({ recipient: candidate._id, type: "SYSTEM_ANNOUNCEMENT", title: "Bulk 2", message: "B2", priority: "low" });
+        const bulkDeleteResult = await notificationService.deleteBulkNotifications([b1._id, b2._id], candidate._id);
+        console.log(`✅ Bulk delete executed. Deleted count in DB: ${bulkDeleteResult.deletedCount}`);
+        
+        const b1Check = await Notification.findById(b1._id);
+        const b2Check = await Notification.findById(b2._id);
+        if (bulkDeleteResult.deletedCount === 2 && b1Check === null && b2Check === null) {
+            console.log("✅ Database confirmed both notifications were bulk deleted");
+            console.log("✅ TEST CASE 8B PASSED\n");
+        } else {
+            throw new Error("Failed bulk delete verification");
         }
 
         console.log("=== 🧪 TEST CASE 9: SECURITY ISOLATION ===");
